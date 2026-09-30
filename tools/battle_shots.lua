@@ -22,7 +22,8 @@ return function(game)
 
   os.execute('mkdir "' .. DIR:gsub("/", "\\") .. '" 2>nul')
 
-  game.save.party = { Pokemon.new(game.data, "BULBASAUR", 12) }
+  -- CAS_PLAYER picks the player's Pokemon, so its back sprite can be checked.
+  game.save.party = { Pokemon.new(game.data, os.getenv("CAS_PLAYER") or "BULBASAUR", 12) }
   U.teleport(game, "ROUTE_1", 5, 5, "down")
   U.wait(10)
   local ow = game.overworld

@@ -21,7 +21,7 @@ end
 
 local function libs()
   local out = {}
-  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "specks" }) do
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back" }) do
     out[n] = readFile("lib/" .. n .. ".lua")
   end
   return out
@@ -129,6 +129,20 @@ if H.rom() then
     for _, e in ipairs(expect.keep) do
       H.eq(alpha(e[1], e[2], e[3], e[4]), 255,
         ("dex %d frame %d (%d,%d) is a kept region and must stay"):format(e[1], e[2], e[3], e[4]))
+    end
+  end)
+
+  H.test("job: every back-sprite region reviewed by hand is cleared or kept as decided", function()
+    local decisions = dofile("tests/review_back_decisions.lua")
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 1, last = 151 })
+    H.eq(next(r.errors), nil, "no species failed")
+    for _, d in ipairs(decisions.remove) do
+      H.eq(alphaAt(r.species[d[1]].back, 48, d[3], d[4]), 0,
+        ("dex %d back (%d,%d) is a hole and must be transparent"):format(d[1], d[3], d[4]))
+    end
+    for _, d in ipairs(decisions.keep) do
+      H.eq(alphaAt(r.species[d[1]].back, 48, d[3], d[4]), 255,
+        ("dex %d back (%d,%d) is meant to be white and must stay"):format(d[1], d[3], d[4]))
     end
   end)
 

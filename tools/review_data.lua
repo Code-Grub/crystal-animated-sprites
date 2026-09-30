@@ -81,7 +81,11 @@ end
 -- added as a seed), one that overlaps a region you kept is left alone, and
 -- anything that overlaps neither is a new candidate for the page.
 local MIN = tonumber(os.getenv("MIN_SIZE") or "4")
-local decisions = pcall(dofile, "tests/review_decisions.lua") and dofile("tests/review_decisions.lua") or nil
+-- KIND=back reviews the back sprites instead: one static 48x48 pic per species,
+-- so there are no animation frames to follow.
+local KIND = os.getenv("KIND") or "front"
+local decisionsFile = KIND == "back" and "tests/review_back_decisions.lua" or "tests/review_decisions.lua"
+local decisions = pcall(dofile, decisionsFile) and dofile(decisionsFile) or nil
 
 local function regionAt(list, cellIndex0)
   for _, region in ipairs(list) do
@@ -95,6 +99,7 @@ local items, propagated, stats = {}, {}, { propagated = 0, kept = 0, new = 0, se
 local expectRemove, expectKeep = {}, {}
 for dex = 1, 151 do
   local r = Anim.decode(rom, dex)
+  if KIND == "back" then r = { frames = { [0] = r.back }, width = 48 } end
   local w = r.width
   local frames = {}
   for index in pairs(r.frames) do frames[#frames + 1] = index end
@@ -158,8 +163,8 @@ for dex = 1, 151 do
               local cells = {}
               for _, i in ipairs(region.cells) do cells[#cells + 1] = i - 1 end
               items[#items + 1] = string.format(
-                '{"dex":%d,"name":"%s","frame":%d,"w":%d,"x":%d,"y":%d,"size":%d,"frames":[%s],"px":"%s","cells":[%s]}',
-                dex, NAMES[dex], index, w, seed % w, math.floor(seed / w), #region.cells,
+                '{"dex":%d,"name":"%s","kind":"%s","frame":%d,"w":%d,"x":%d,"y":%d,"size":%d,"frames":[%s],"px":"%s","cells":[%s]}',
+                dex, NAMES[dex], KIND, index, w, seed % w, math.floor(seed / w), #region.cells,
                 table.concat(inFrames, ","), digits(r.frames[index]), table.concat(cells, ","))
               stats.new = stats.new + 1
             end

@@ -1,0 +1,231 @@
+{
+ "remove": [
+  {
+   "dex": 3,
+   "name": "Venusaur",
+   "kind": "back",
+   "frame": 0,
+   "x": 35,
+   "y": 27,
+   "size": 8
+  },
+  {
+   "dex": 5,
+   "name": "Charmeleon",
+   "kind": "back",
+   "frame": 0,
+   "x": 25,
+   "y": 40,
+   "size": 9
+  },
+  {
+   "dex": 41,
+   "name": "Zubat",
+   "kind": "back",
+   "frame": 0,
+   "x": 15,
+   "y": 10,
+   "size": 11
+  },
+  {
+   "dex": 44,
+   "name": "Gloom",
+   "kind": "back",
+   "frame": 0,
+   "x": 5,
+   "y": 32,
+   "size": 9
+  },
+  {
+   "dex": 44,
+   "name": "Gloom",
+   "kind": "back",
+   "frame": 0,
+   "x": 37,
+   "y": 33,
+   "size": 14
+  },
+  {
+   "dex": 65,
+   "name": "Alakazam",
+   "kind": "back",
+   "frame": 0,
+   "x": 17,
+   "y": 23,
+   "size": 47
+  },
+  {
+   "dex": 71,
+   "name": "Victreebel",
+   "kind": "back",
+   "frame": 0,
+   "x": 18,
+   "y": 21,
+   "size": 8
+  },
+  {
+   "dex": 71,
+   "name": "Victreebel",
+   "kind": "back",
+   "frame": 0,
+   "x": 11,
+   "y": 38,
+   "size": 18
+  },
+  {
+   "dex": 80,
+   "name": "Slowbro",
+   "kind": "back",
+   "frame": 0,
+   "x": 14,
+   "y": 20,
+   "size": 4
+  },
+  {
+   "dex": 116,
+   "name": "Horsea",
+   "kind": "back",
+   "frame": 0,
+   "x": 18,
+   "y": 22,
+   "size": 4
+  },
+  {
+   "dex": 150,
+   "name": "Mewtwo",
+   "kind": "back",
+   "frame": 0,
+   "x": 15,
+   "y": 27,
+   "size": 6
+  },
+  {
+   "dex": 151,
+   "name": "Mew",
+   "kind": "back",
+   "frame": 0,
+   "x": 36,
+   "y": 20,
+   "size": 83
+  }
+ ],
+ "keep": [
+  {
+   "dex": 3,
+   "name": "Venusaur",
+   "kind": "back",
+   "frame": 0,
+   "x": 30,
+   "y": 18,
+   "size": 4
+  },
+  {
+   "dex": 9,
+   "name": "Blastoise",
+   "kind": "back",
+   "frame": 0,
+   "x": 38,
+   "y": 30,
+   "size": 5
+  },
+  {
+   "dex": 10,
+   "name": "Caterpie",
+   "kind": "back",
+   "frame": 0,
+   "x": 29,
+   "y": 37,
+   "size": 6
+  },
+  {
+   "dex": 10,
+   "name": "Caterpie",
+   "kind": "back",
+   "frame": 0,
+   "x": 28,
+   "y": 44,
+   "size": 5
+  },
+  {
+   "dex": 12,
+   "name": "Butterfree",
+   "kind": "back",
+   "frame": 0,
+   "x": 6,
+   "y": 12,
+   "size": 34
+  },
+  {
+   "dex": 12,
+   "name": "Butterfree",
+   "kind": "back",
+   "frame": 0,
+   "x": 9,
+   "y": 17,
+   "size": 56
+  },
+  {
+   "dex": 21,
+   "name": "Spearow",
+   "kind": "back",
+   "frame": 0,
+   "x": 29,
+   "y": 18,
+   "size": 7
+  },
+  {
+   "dex": 44,
+   "name": "Gloom",
+   "kind": "back",
+   "frame": 0,
+   "x": 27,
+   "y": 12,
+   "size": 6
+  },
+  {
+   "dex": 67,
+   "name": "Machoke",
+   "kind": "back",
+   "frame": 0,
+   "x": 12,
+   "y": 12,
+   "size": 4
+  },
+  {
+   "dex": 71,
+   "name": "Victreebel",
+   "kind": "back",
+   "frame": 0,
+   "x": 33,
+   "y": 26,
+   "size": 8
+  },
+  {
+   "dex": 83,
+   "name": "Farfetch'd",
+   "kind": "back",
+   "frame": 0,
+   "x": 41,
+   "y": 36,
+   "size": 51
+  },
+  {
+   "dex": 112,
+   "name": "Rhydon",
+   "kind": "back",
+   "frame": 0,
+   "x": 31,
+   "y": 32,
+   "size": 7
+  },
+  {
+   "dex": 115,
+   "name": "Kangaskhan",
+   "kind": "back",
+   "frame": 0,
+   "x": 43,
+   "y": 31,
+   "size": 7
+  }
+ ]
+}

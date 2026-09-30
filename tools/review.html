@@ -54,9 +54,8 @@
 </head>
 <body>
 <main>
-  <h1>Sprite hole review, round 2: animation frames</h1>
-  <p class="sub">These regions only show up in some animation frames, so they were not in round 1.
-  Each picture shows one walled-in white region. <b>Remove</b> it if you could see through
+  <h1 id="page-title">Sprite hole review</h1>
+  <p class="sub">Each picture shows one walled-in white region. <b>Remove</b> it if you could see through
   the sprite there (a gap between limbs, a hole); <b>Keep</b> it if it is meant to be white (an eye, a tongue,
   a highlight). Blue is the backdrop showing through; the game's real backdrop is whatever the battle uses.</p>
 
@@ -97,13 +96,13 @@
   var SHADES = ["#ffffff", "#aaaaaa", "#555555", "#000000"];
   var BACKDROP = "#2b5fab";
   var RED = "#e53935";
-  var STORE = "sprite-hole-review-v2";   // v2: decisions are keyed by animation frame too
+  var STORE = "sprite-hole-review-v3";   // v3: decisions are keyed by sprite kind, frame and position
   var decisions = {};
   try { decisions = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch (e) { decisions = {}; }
   var index = 0;
 
   function $(id) { return document.getElementById(id); }
-  function key(d) { return d.dex + ":" + (d.frame || 0) + ":" + d.x + "," + d.y; }
+  function key(d) { return (d.kind || "front") + ":" + d.dex + ":" + (d.frame || 0) + ":" + d.x + "," + d.y; }
   function save() { try { localStorage.setItem(STORE, JSON.stringify(decisions)); } catch (e) {} }
 
   // The white that touches the edge of the pic is transparent in the game already.
@@ -151,8 +150,11 @@
     if (!DATA.length) { $("title").textContent = "No data: run  luajit tools/review_data.lua  first."; return; }
     var d = DATA[index], c = counts(), v = decisions[key(d)];
     $("title").textContent = "#" + d.dex + " " + d.name;
-    $("facts").textContent = d.size + " pixels  ·  at x " + d.x + ", y " + d.y + "  ·  shown in animation frame "
-      + (d.frame || 0) + "  ·  same region in frame" + (d.frames.length > 1 ? "s " : " ") + d.frames.join(", ");
+    $("facts").textContent = d.size + " pixels  ·  at x " + d.x + ", y " + d.y
+      + (d.kind === "back" ? "  ·  back sprite (the one you see from behind)"
+        : "  ·  shown in animation frame " + (d.frame || 0) + "  ·  same region in frame"
+          + (d.frames.length > 1 ? "s " : " ") + d.frames.join(", "));
+    $("page-title").textContent = d.kind === "back" ? "Sprite hole review: back sprites" : "Sprite hole review";
     draw($("before"), d, "before");
     draw($("after"), d, "after");
     $("progress").textContent = (index + 1) + " of " + DATA.length;
@@ -173,7 +175,7 @@
     });
     var out = { remove: [], keep: [], undecided: c.left };
     DATA.forEach(function (x) {
-      var dec = decisions[key(x)], row = { dex: x.dex, name: x.name, frame: x.frame || 0, x: x.x, y: x.y, size: x.size };
+      var dec = decisions[key(x)], row = { dex: x.dex, name: x.name, kind: x.kind || "front", frame: x.frame || 0, x: x.x, y: x.y, size: x.size };
       if (dec === "remove") out.remove.push(row); else if (dec === "keep") out.keep.push(row);
     });
     $("out").value = JSON.stringify(out, null, 1);
