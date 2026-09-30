@@ -124,6 +124,9 @@ do
   local front = pathFor(Data, "FIXMON_C", "front")
   check(front:find(prefix .. "/front/003/", 1, true) == 1,
     "a cached species serves a cached frame path (got " .. tostring(front) .. ")")
+  eq(pathFor(Data, "FIXMON_C", "front"), prefix .. "/front/003/0.png",
+    "a lookup the engine makes itself (battle start, Transform, ghost reveal) "
+    .. "gets the resting frame, not whatever the clock says")
   eq(pathFor(Data, "FIXMON_C", "back"), prefix .. "/back/003.png",
     "back slot serves Crystal's back art by default")
   eq(pathFor(Data, "FIXMON_A", "front"), "tests/fixture_data/assets/fixmon_a_front.png",

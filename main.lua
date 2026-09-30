@@ -182,12 +182,10 @@ return function(mod)
   ---------------------------------------------------------------------------
   -- Serving frames
   ---------------------------------------------------------------------------
-  local frozen -- the time a swap is rebuilding for, so the hook agrees with it
-  local function clock()
-    if frozen then return frozen end
-    if love and love.timer then return love.timer.getTime() end
-    return 0
-  end
+  -- The time a swap is rebuilding for.  It is nil outside a swap, so a lookup
+  -- the engine makes on its own (battle start, Transform, the ghost reveal)
+  -- gets the resting frame instead of a random mid-animation one.
+  local frozen
 
   local function dexOf(data, species)
     local def = data and data.pokemon and data.pokemon[species]
@@ -212,7 +210,7 @@ return function(mod)
     if not (ctx and ctx.kind == "battle") then return next(originalPath, ctx) end
     pollJobs()
     local dex = dexOf(ctx.data, ctx.species)
-    local path = dex and resolve(dex, ctx.side, clock())
+    local path = dex and resolve(dex, ctx.side, frozen)
     return path or next(originalPath, ctx)
   end, 930)
 
@@ -244,7 +242,7 @@ return function(mod)
   mod.hooks:wrap("battle.overlay", function(next, screen)
     local ok, err = pcall(function()
       pollJobs()
-      frozen = clock()
+      frozen = (love and love.timer) and love.timer.getTime() or 0
       swap:tick(screen, screen.enemy, "front", frozen)
       swap:tick(screen, screen.player, "back", frozen)
     end)

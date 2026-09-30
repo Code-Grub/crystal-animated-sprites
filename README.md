@@ -24,14 +24,17 @@ the download.
 1. Install the mod and enable it.
 2. When the launcher asks for a file, pick your own **Pokemon Crystal** ROM.
    English (UE) v1.0 and v1.1 are supported; the launcher checks it for you.
-3. Play. The first launch builds the sprites in the background. A battle
-   that starts before its species is ready simply shows the normal sprite,
-   and the next battle uses Crystal's.
+3. Play. The first launch builds the sprites in the background, which takes a
+   few seconds, so give it a moment before your first battle. A Pokemon whose
+   sprite is not built yet shows the normal one, and switches to Crystal's as
+   soon as it is ready, even in the middle of a battle.
 
 ## Notes
 
 - The front animation loops with a short rest on the resting frame. Crystal
   itself plays it once when a Pokemon appears.
+- After a Pokemon uses Transform, or after a Silph Scope reveals the Pokemon
+  Tower ghost, that sprite holds Crystal's resting pose instead of animating.
 - Only battle sprites are replaced. The Pokedex, status screen and box screens
   keep their usual pictures.
 - Sprites are rebuilt on their own if you swap the ROM for a different dump.
