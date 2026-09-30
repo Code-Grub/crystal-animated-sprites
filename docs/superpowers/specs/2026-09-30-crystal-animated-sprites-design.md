@@ -1,12 +1,12 @@
-# Crystal ROM Sprites: design
+# Crystal Animated Sprites: design
 
-Mod id: `crystal_rom_sprites`. Status: approved design, pending spec review.
+Mod id: `crystal_animated_sprites`. Status: approved design, pending spec review.
 
 ## Goal
 
 Give Gen1Recomp's Red/Blue/Yellow battles Crystal's animated front sprites,
 with all art decoded at runtime from the player's own Crystal ROM. The mod
-bundles no Nintendo artwork. It replaces the earlier
+bundles no Nintendo artwork. It succeeds the earlier
 `crystal_animated_sprites_with_shiny_visuals`, which ships 8,658 ripped PNGs.
 
 ## Scope
@@ -34,7 +34,7 @@ sprites, Crystal colour palettes for normal mons, any gameplay change.
   `301899b8087289a6436b0a241fbbb474` (UE v1.1). The mod does not load without
   the ROM.
 - Manifest: `api` 2, `profile` content, `games` `["gen1"]`, `conflicts` on
-  `crystal_animated_sprites_with_shiny_visuals`, `crystal_animated_sprites`,
+  `crystal_animated_sprites_with_shiny_visuals`,
   `gen2_shiny_visuals`, `shiny_visuals`, `CRYSTAL_251`.
 - Decoding must stay inside the mod sandbox: pure Lua, reads through the
   bounded `mod.imports` facade or `mod:read`, writes only under
@@ -59,7 +59,7 @@ One unit per file, each testable alone.
 
 1. First load: the launcher validates the ROM by MD5. `cache` finds no stamped
    cache, so the decode job runs `anim` for species 1-151 and writes
-   `mod_cache/crystal_rom_sprites/`.
+   `mod_cache/crystal_animated_sprites/`.
 2. Later loads: `cache` validates the stamp and skips decoding.
 3. Battle: the `pokemon.sprite` hook (and the Gen 1 `BattleState` animation
    loop) asks for a species. `main` returns the current frame by elapsed time.
