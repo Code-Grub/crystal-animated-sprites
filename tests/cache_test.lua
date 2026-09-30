@@ -33,10 +33,10 @@ end)
 H.test("cache: the format moved past the opaque-background caches", function()
   -- Format 1 held pics with an opaque white background.  A player who ran
   -- that version must get a fresh decode, which a new stamp forces.
-  -- 4 holds the front-sprite holes (unreleased).  Caches built before the back-sprite
-  -- holes were cleared lack them, so the format must have moved on.
-  H.eq(Cache.FORMAT >= 5, true, "FORMAT")
-  H.eq(Cache.stamp({ u8 = function() return 0 end }):sub(1, 3) ~= "f4-", true)
+  -- 5 holds the reviewed front and back holes (unreleased).  Caches built before the hand
+  -- edits were applied lack them, so the format must have moved on.
+  H.eq(Cache.FORMAT >= 6, true, "FORMAT")
+  H.eq(Cache.stamp({ u8 = function() return 0 end }):sub(1, 3) ~= "f5-", true)
 end)
 
 H.test("cache: fresh store is not valid until begun", function()

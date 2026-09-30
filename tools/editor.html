@@ -83,6 +83,11 @@
         <button id="toolClear" class="clear">Paint transparent<kbd>2</kbd></button>
         <button id="toolKeep" class="keep">Paint opaque<kbd>3</kbd></button>
       </div>
+      <div class="row">
+        <button id="toolFillClear" class="clear">Fill transparent<kbd>4</kbd></button>
+        <button id="toolFillKeep" class="keep">Fill opaque<kbd>5</kbd></button>
+      </div>
+      <div class="row"><label><input type="checkbox" id="across"> Fill across states</label></div>
       <div class="row">Brush size
         <select id="brush" style="width:auto"><option>1</option><option>2</option><option>3</option><option>5</option></select>
       </div>
@@ -95,6 +100,9 @@
         <button id="reset">Reset this sprite</button>
       </div>
       <p class="hint">Flip region: click a white area and everything white and connected to it with the same state flips.
+      Fill: like a paint bucket, sets the white area you click to transparent or opaque. By default it fills only
+      pixels in the same state as the one you click; tick "Fill across states" to fill the whole connected white
+      area even where part of it is transparent and part opaque.
       Paint: click or drag over white pixels. Only white pixels ever change; the sprite's own art is never touched.</p>
     </div>
     <div class="card" style="margin-top:12px">
@@ -146,8 +154,9 @@
     return alpha;
   };
 
-  // the white pixels connected to `start` that share its current state
-  Logic.flood = function (px, w, alpha, start) {
+  // the white pixels connected to `start` that share its current state, or every
+  // connected white pixel when anyState is set
+  Logic.flood = function (px, w, alpha, start, anyState) {
     if (px.charAt(start) !== "0") return [];
     var state = alpha[start], seen = new Uint8Array(px.length), out = [start], head = 0;
     seen[start] = 1;
@@ -159,7 +168,7 @@
       if (y < w - 1) n.push(i + w);
       for (var k = 0; k < n.length; k++) {
         var j = n[k];
-        if (!seen[j] && px.charAt(j) === "0" && alpha[j] === state) { seen[j] = 1; out.push(j); }
+        if (!seen[j] && px.charAt(j) === "0" && (anyState || alpha[j] === state)) { seen[j] = 1; out.push(j); }
       }
     }
     return out;
@@ -402,6 +411,10 @@
       if (!first) return;
       var region = Logic.flood(cur.px, cur.w, a, p);
       if (region.length) setPixels(region, a[p] ? "clear" : "keep");
+    } else if (st.tool === "fillClear" || st.tool === "fillKeep") {
+      if (!first) return;
+      var filled = Logic.flood(cur.px, cur.w, a, p, $("across").checked);
+      if (filled.length) setPixels(filled, st.tool === "fillClear" ? "clear" : "keep");
     } else {
       setPixels(brushPixels(p), st.tool === "clear" ? "clear" : "keep");
     }
@@ -411,7 +424,10 @@
   canvas.addEventListener("mousemove", function (ev) {
     if (painting && st.tool !== "region") { act(ev, false); return; }
     var p = pixelAt(ev), cur = current();
-    var next = p < 0 ? [] : st.tool === "region" ? Logic.flood(cur.px, cur.w, effective(cur), p) : brushPixels(p).filter(function (i) { return cur.px.charAt(i) === "0"; });
+    var fill = st.tool === "fillClear" || st.tool === "fillKeep";
+    var next = p < 0 ? [] : (st.tool === "region" || fill)
+      ? Logic.flood(cur.px, cur.w, effective(cur), p, fill && $("across").checked)
+      : brushPixels(p).filter(function (i) { return cur.px.charAt(i) === "0"; });
     if (next.length !== st.hover.length || next[0] !== st.hover[0]) { st.hover = next; render(); }
   });
   canvas.addEventListener("mouseleave", function () { if (st.hover.length) { st.hover = []; render(); } });
@@ -421,6 +437,8 @@
     $("toolRegion").className = t === "region" ? "on" : "";
     $("toolClear").className = "clear" + (t === "clear" ? " on" : "");
     $("toolKeep").className = "keep" + (t === "keep" ? " on" : "");
+    $("toolFillClear").className = "clear" + (t === "fillClear" ? " on" : "");
+    $("toolFillKeep").className = "keep" + (t === "fillKeep" ? " on" : "");
   }
   function step(n) {
     if (st.kind === "back") return;
@@ -436,6 +454,9 @@
   $("toolRegion").onclick = function () { setTool("region"); };
   $("toolClear").onclick = function () { setTool("clear"); };
   $("toolKeep").onclick = function () { setTool("keep"); };
+  $("toolFillClear").onclick = function () { setTool("fillClear"); };
+  $("toolFillKeep").onclick = function () { setTool("fillKeep"); };
+  $("across").onchange = function () { st.hover = []; render(); };
   ["backdrop", "mark", "grid"].forEach(function (id) { $(id).onchange = render; });
   $("search").oninput = renderList;
   $("undo").onclick = function () { if (st.undo.length) { edits = JSON.parse(st.undo.pop()); changed(); } };
@@ -460,6 +481,7 @@
     if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
     else if (e.key === "PageUp" || k === "[") species(-1); else if (e.key === "PageDown" || k === "]") species(1);
     else if (k === "1") setTool("region"); else if (k === "2") setTool("clear"); else if (k === "3") setTool("keep");
+    else if (k === "4") setTool("fillClear"); else if (k === "5") setTool("fillKeep");
     else if (k === "z") $("undo").onclick(); else if (k === "f") $("kindFront").onclick(); else if (k === "g") $("kindBack").onclick();
   });
   syncKind(); setTool("region"); render();

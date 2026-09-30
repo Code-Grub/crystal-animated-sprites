@@ -166,6 +166,59 @@ if H.rom() then
     H.eq(alphaAt(s.back, 48, 0, 0), 255, "back sprite edit")
   end)
 
+  H.test("job: every hand edit in lib/edits.lua shows up in the decoded pics", function()
+    local edits = dofile("lib/edits.lua")
+    local Rom, Anim = H.need("rom"), H.need("anim")
+    local rom = Rom.new(H.rom())
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 1, last = 151 })
+
+    -- check one pic: `sets` are run lists applied in order (later ones win)
+    local function check(label, px, w, png, sets)
+      local want, hit = {}, {}
+      for _, runs in ipairs(sets) do
+        for n, run in ipairs(runs) do
+          local y = run[1]
+          for x = run[2], run[3] do
+            local i = y * w + x + 1
+            if px[i] == 0 then want[i] = run[4]; hit[runs] = (hit[runs] or 0) + 1 end
+          end
+        end
+      end
+      for i, action in pairs(want) do
+        local x, y = (i - 1) % w, math.floor((i - 1) / w)
+        H.eq(alphaAt(png, w, x, y), action == "keep" and 255 or 0,
+          ("%s (%d,%d) should be %s"):format(label, x, y, action == "keep" and "opaque" or "transparent"))
+      end
+      for _, runs in ipairs(sets) do
+        H.eq((hit[runs] or 0) > 0, true, label .. ": a run list names no white pixel at all")
+      end
+    end
+
+    for dex, scopes in pairs(edits.front) do
+      local d, sp = Anim.decode(rom, dex), r.species[dex]
+      for scope, runs in pairs(scopes) do
+        if scope ~= "all" then
+          H.eq(d.frames[scope] ~= nil, true, ("dex %d has no animation frame %d"):format(dex, scope))
+          local sets = {}
+          if scopes.all then sets[#sets + 1] = scopes.all end
+          sets[#sets + 1] = runs
+          check(("dex %d frame %d"):format(dex, scope), d.frames[scope], d.width, sp.frames[scope], sets)
+        end
+      end
+      if scopes.all then
+        for index, px in pairs(d.frames) do
+          if not scopes[index] then
+            check(("dex %d frame %d"):format(dex, index), px, d.width, sp.frames[index], { scopes.all })
+          end
+        end
+      end
+    end
+    for dex, runs in pairs(edits.back) do
+      local d = Anim.decode(rom, dex)
+      check(("dex %d back"):format(dex), d.back, 48, r.species[dex].back, { runs })
+    end
+  end)
+
   H.test("job: Pikachu's tail-base gap is cleared and his eye glints are not", function()
     local r = runJob({ rom = H.rom(), libs = libs(), first = 25, last = 25 })
     local s = assert(r.species[25], "species 25")

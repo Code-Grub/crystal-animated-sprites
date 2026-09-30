@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- White patches that were really gaps in the sprite, such as between limbs or inside a hood or tail, are now transparent instead of white. This includes poses that only appear during the animation. About 34 Pokemon are affected, among them Victreebel, Dratini, Pinsir, Dodrio and Electabuzz. The same was done for the back sprites, such as Mew, Alakazam and Victreebel.
+- White patches that were really gaps in the sprite, such as between limbs or inside a hood or tail, are now transparent instead of white. This includes poses that only appear during the animation. About 34 Pokemon are affected, among them Victreebel, Dratini, Pinsir, Dodrio and Electabuzz. The same was done for the back sprites, such as Mew, Alakazam and Victreebel. A few sprites were also touched up by hand: Venusaur, Charmander and Charmeleon in front, and the back sprites of Ivysaur, Venusaur, Charmander and Charmeleon.
 - The sprites are rebuilt once from your ROM the first time you run this version.
 
 ## 0.1.1
