@@ -70,3 +70,20 @@ H.test("cache: meta is written last, so a failed write leaves no entry", functio
   H.eq(type(err), "string")
   H.eq(c:meta(1), nil, "no meta after a failed put")
 end)
+
+H.test("cache: complete needs meta and every file on disk", function()
+  local store = fakeStore()
+  local c = Cache.new(store, "s1", "m")
+  c:begin()
+  H.eq(c:complete(25), false, "nothing cached")
+  c:put(25, result)
+  H.eq(c:complete(25), true, "fully written")
+  for _, key in ipairs({ "s1/front/025/1.png", "s1/front/025/0m.png", "s1/back/025.png" }) do
+    local saved = store.files[key]
+    store.files[key] = nil
+    H.eq(c:complete(25), false, key .. " missing")
+    H.eq(c:meta(25) ~= nil, true, "meta alone still parses")
+    store.files[key] = saved
+  end
+  H.eq(c:complete(25), true, "restored")
+end)

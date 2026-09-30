@@ -81,4 +81,19 @@ function Cache:meta(dex)
   return meta
 end
 
+-- True only when the meta entry parses AND every file it promises is still
+-- on disk.  A meta file alone is not enough: a partly deleted cache would
+-- otherwise hand the engine a path it cannot load.
+function Cache:complete(dex)
+  local meta = self:meta(dex)
+  if not meta then return false end
+  local function present(rest) return self.store.info(self:key(rest)) ~= nil end
+  if not present(("back/%03d.png"):format(dex)) then return false end
+  for index in pairs(meta.frames) do
+    if not present(("front/%03d/%d.png"):format(dex, index)) then return false end
+    if not present(("front/%03d/%dm.png"):format(dex, index)) then return false end
+  end
+  return true
+end
+
 return Cache

@@ -136,6 +136,8 @@ do
     "the back pic is registered at 1x")
   check(Data.battle_sprite_scales.cas_f003_0m ~= nil,
     "the mirrored resting frame is registered at 1x")
+  check(require("src.mods.Runtime").wantsHook("core.update"),
+    "decode results are collected every frame, not only inside a battle")
   run.release()
 end
 
@@ -148,6 +150,21 @@ do
   eq(pathFor(Data, "FIXMON_A", "front"), "tests/fixture_data/assets/fixmon_a_front.png",
     "a stale-stamp cache is not served")
   check(staleFirst:meta(1) ~= nil, "(the stale cache itself was written)")
+  run.release()
+end
+
+-- 3. A meta file whose PNGs were deleted must not be served: the engine would
+--    raise trying to load a path that is not there.
+do
+  local fs = makeFs()
+  seed(fs, realStamp, 3, 3)
+  fs.overlay["mod_cache/" .. ID .. "/" .. realStamp .. "/back/003.png"] = nil
+  local run, Data = load(fs)
+  eq(run.mod and run.mod.state, "loaded", "loads with a damaged cache present")
+  eq(pathFor(Data, "FIXMON_C", "front"), "tests/fixture_data/assets/fixmon_c_front.png",
+    "a species with a missing file keeps the engine's art (front)")
+  eq(pathFor(Data, "FIXMON_C", "back"), "tests/fixture_data/assets/fixmon_c_back.png",
+    "a species with a missing file keeps the engine's art (back)")
   run.release()
 end
 

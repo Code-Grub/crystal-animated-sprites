@@ -10,7 +10,7 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap" }
+                     "playback", "swap", "ingest" }
   local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
@@ -34,7 +34,7 @@ return function(mod)
     return loaded[name]
   end
   local Rom, Anim, Cache = need("rom"), need("anim"), need("cache")
-  local Playback, Swap = need("playback"), need("swap")
+  local Playback, Swap, Ingest = need("playback"), need("swap"), need("ingest")
 
   local romBytes, readErr = mod.imports:read("crystal_rom", 0, 2097152)
   if not romBytes then
@@ -97,12 +97,25 @@ return function(mod)
   -- Nothing here blocks: poll runs from the sprite hook and the battle
   -- overlay, so finished work is cached before the next battle draws.
   ---------------------------------------------------------------------------
-  local failed, pending, running = {}, {}, {}
+  -- ready[dex]: every file for that species is on disk and servable.  Only
+  -- the complete check (not the meta file alone) makes a species ready, so a
+  -- partly deleted cache is re-decoded instead of handed to the engine.
+  local failed, pending, running, ready = {}, {}, {}, {}
+  local INGEST_BUDGET = 4 -- species written per poll; see lib/ingest.lua
+  local ingest = Ingest.new(cache, {
+    onPut = function(dex) ready[dex] = true end,
+    onFail = function(dex, err)
+      failed[dex] = true
+      warnOnce("cachewrite", "cache write failed at species %d: %s", dex, err)
+    end,
+  })
 
   do
     local first, last
     for dex = 1, LAST do
-      if not cache:meta(dex) then
+      if cache:complete(dex) then
+        ready[dex] = true
+      else
         first = first or dex
         last = dex
       end
@@ -147,13 +160,7 @@ return function(mod)
       failed[dex] = true
       mod.log:warn("species %d not decoded: %s", dex, tostring(message))
     end
-    for dex, decoded in pairs(result.result.species) do
-      local ok, err = cache:put(dex, decoded)
-      if not ok then
-        failed[dex] = true
-        warnOnce("cachewrite", "cache write failed at species %d: %s", dex, tostring(err))
-      end
-    end
+    ingest:enqueue(result.result.species)
   end
 
   local function pollJobs()
@@ -167,6 +174,7 @@ return function(mod)
         consume(job, result)
       end
     end
+    ingest:step(INGEST_BUDGET)
   end
 
   pollJobs()
@@ -189,7 +197,7 @@ return function(mod)
   end
 
   local function resolve(dex, side, seconds)
-    local meta = not failed[dex] and cache:meta(dex)
+    local meta = ready[dex] and not failed[dex] and cache:meta(dex)
     if not meta then return nil end
     if side == "back" then
       if mod.options:get("back_sprites") == "front" then
@@ -225,6 +233,13 @@ return function(mod)
       return ok and fresh and fresh.sprite or nil
     end,
   })
+
+  -- Results are collected every frame, so a decode that finished during boot is
+  -- already cached by the first battle instead of being written at its start.
+  mod.hooks:wrap("core.update", function(next, game, dt)
+    pollJobs()
+    return next(game, dt)
+  end, 930)
 
   mod.hooks:wrap("battle.overlay", function(next, screen)
     local ok, err = pcall(function()
