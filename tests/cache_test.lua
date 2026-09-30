@@ -27,7 +27,14 @@ local result = {
 H.test("cache: stamp comes from the header checksum and version", function()
   local rom = { raw = string.rep("\0", 0x14C) .. "\1\0\xAB\xCD" }
   rom.u8 = function(self, o) return self.raw:byte(o + 1) end
-  H.eq(Cache.stamp(rom), "f1-abcd-01")
+  H.eq(Cache.stamp(rom), "f" .. Cache.FORMAT .. "-abcd-01")
+end)
+
+H.test("cache: the format moved past the opaque-background caches", function()
+  -- Format 1 held pics with an opaque white background.  A player who ran
+  -- that version must get a fresh decode, which a new stamp forces.
+  H.eq(Cache.FORMAT >= 2, true, "FORMAT")
+  H.eq(Cache.stamp({ u8 = function() return 0 end }):sub(1, 3) ~= "f1-", true)
 end)
 
 H.test("cache: fresh store is not valid until begun", function()

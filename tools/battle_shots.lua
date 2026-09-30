@@ -29,6 +29,32 @@ return function(game)
   U.log(ow and "PASS" or "FAIL", "overworld is up")
   if not ow then return end
 
+  -- CAS_BG=world lets the overworld show behind the battle, which is what a
+  -- mod that replaces the backdrop looks like to a sprite: any opaque pixel
+  -- in the pic shows up against it.  Set in memory because the ruleset can
+  -- override the saved option.
+  if os.getenv("CAS_BG") then game.save.options.battleBg = os.getenv("CAS_BG") end
+
+  -- CAS_FIELD=gray|dark repaints the battle field (the white 160x144 fill),
+  -- standing in for a mod that replaces the backdrop.  Any opaque white in a
+  -- sprite then shows up as a rectangle around it.
+  local FIELDS = { gray = 0.6, dark = 0.1 }
+  local field = FIELDS[os.getenv("CAS_FIELD") or ""]
+  if field then
+    local g = love.graphics
+    local realRect = g.rectangle
+    g.rectangle = function(mode, x, y, w, h, ...)
+      if mode == "fill" and x == 0 and y == 0 and w == 160 and h == 144
+         and select(1, g.getColor()) == 1 then
+        g.setColor(field, field, field, 1)
+        realRect(mode, x, y, w, h, ...)
+        g.setColor(1, 1, 1, 1)
+        return
+      end
+      return realRect(mode, x, y, w, h, ...)
+    end
+  end
+
   local battle = BattleState.newWild(game, SPECIES, 10)
   battle.onFinish = function() end
   ow:pushBattle(battle)
@@ -45,6 +71,7 @@ return function(game)
 
   local enemy = battle.enemy
   U.log("enemy sprite image:", tostring(enemy and enemy.sprite))
+  U.log("bgMode", battle:bgMode(), "isOpaque", tostring(battle.isOpaque), "battleBg option", tostring(game.save.options and game.save.options.battleBg))
   for i = 1, SHOTS do
     U.shot(game, ("%s/%s_%02d.png"):format(DIR, SPECIES, i))
     U.log("shot", i, U.frame())

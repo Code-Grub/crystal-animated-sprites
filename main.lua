@@ -10,8 +10,8 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest" }
-  local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim" }
+                     "playback", "swap", "ingest", "specks" }
+  local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "specks" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
   -- load, and each lib chunk receives `need` to reach the others.

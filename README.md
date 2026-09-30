@@ -23,6 +23,8 @@ part of the mod.
   - `ANIMATED FRONT`: the animated front sprite, mirrored.
 - Red, Blue and Yellow keep their own colours and palettes. Only the pictures
   change.
+- The sprites have transparent backgrounds, so they work with mods that replace
+  the battle background.
 
 ## Installing
 

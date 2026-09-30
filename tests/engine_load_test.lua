@@ -43,7 +43,7 @@ local Rom, Cache = need("rom"), need("cache")
 
 local function decodeBatch(first, last)
   local libs = {}
-  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim" }) do
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "specks" }) do
     libs[n] = readFile(MOD .. "/lib/" .. n .. ".lua")
   end
   local chunk = assert(loadfile(MOD .. "/jobs/decode.lua"))

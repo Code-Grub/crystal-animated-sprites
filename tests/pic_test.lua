@@ -67,3 +67,87 @@ end)
 H.test("pic: mirror reverses each row", function()
   H.arrayEq(Pic.mirror({ 1, 2, 3, 0, 1, 2 }, 3), { 3, 2, 1, 2, 1, 0 })
 end)
+
+H.test("pic: matte clears only the background connected to the edge", function()
+  -- a ring of colour 1 around an enclosed colour-0 centre, colour 0 outside
+  local px = {
+    0, 0, 0, 0, 0,
+    0, 1, 1, 1, 0,
+    0, 1, 0, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 0, 0,
+  }
+  H.arrayEq(Pic.matte(px, 5), {
+    0, 0, 0, 0, 0,
+    0, 1, 1, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 1, 1, 1, 0,
+    0, 0, 0, 0, 0,
+  })
+end)
+
+H.test("pic: matte does not leak through a diagonal gap", function()
+  -- the centre touches the outside only at corners, so it is enclosed
+  local px = { 0, 1, 0, 1, 0, 1, 0, 1, 0 }
+  H.arrayEq(Pic.matte(px, 3), { 0, 1, 0, 1, 1, 1, 0, 1, 0 })
+end)
+
+H.test("pic: matte keeps a pic with no colour 0 fully opaque", function()
+  local px = { 1, 2, 3, 3, 2, 1, 1, 1, 1 }
+  H.arrayEq(Pic.matte(px, 3), { 1, 1, 1, 1, 1, 1, 1, 1, 1 })
+end)
+
+H.test("pic: mirror also works on an alpha plane", function()
+  H.arrayEq(Pic.mirror({ 1, 0, 0, 0, 1, 1 }, 3), { 0, 0, 1, 1, 1, 0 })
+end)
+
+-- Known blemishes.  A single colour-0 pixel boxed in by the outline is often a
+-- gap in the sprite that the edge fill cannot reach (Pikachu's tail base), but
+-- it can equally be a glint in an eye, and the two look the same up close.  So
+-- specks are cleared only where a species' list names them, and only if the
+-- pixel really is a walled-in white pixel with black on all four sides.
+H.test("pic: matte clears a speck the species list names", function()
+  local px = {
+    0, 0, 0, 0, 0,
+    0, 0, 3, 0, 0,
+    0, 3, 0, 3, 0,
+    0, 0, 3, 0, 0,
+    0, 0, 0, 0, 0,
+  }
+  local a = Pic.matte(px, 5, { { 2, 2 } })
+  H.eq(a[13], 0, "the named speck is transparent")
+  H.eq(a[8], 1, "the outline around it stays opaque")
+end)
+
+H.test("pic: matte leaves an identical speck that is not on the list", function()
+  local px = {
+    0, 0, 0, 0, 0,
+    0, 0, 3, 0, 0,
+    0, 3, 0, 3, 0,
+    0, 0, 3, 0, 0,
+    0, 0, 0, 0, 0,
+  }
+  H.eq(Pic.matte(px, 5)[13], 1, "no list, no clearing")
+  H.eq(Pic.matte(px, 5, { { 0, 0 } })[13], 1, "a different coordinate, no clearing")
+end)
+
+H.test("pic: a listed pixel that is not a speck is left alone", function()
+  -- the same coordinate in another animation frame can be plain outline
+  local outline = {
+    0, 0, 0, 0, 0,
+    0, 0, 3, 0, 0,
+    0, 3, 3, 3, 0,
+    0, 0, 3, 0, 0,
+    0, 0, 0, 0, 0,
+  }
+  H.eq(Pic.matte(outline, 5, { { 2, 2 } })[13], 1, "black outline stays")
+  local shine = {
+    0, 0, 0, 0, 0,
+    0, 0, 3, 0, 0,
+    0, 3, 0, 1, 0,
+    0, 0, 3, 0, 0,
+    0, 0, 0, 0, 0,
+  }
+  H.eq(Pic.matte(shine, 5, { { 2, 2 } })[13], 1, "a white pixel touching body colour stays")
+  H.eq(Pic.matte(outline, 5, { { 9, 9 } })[13], 1, "a coordinate outside the pic is ignored")
+end)

@@ -60,6 +60,24 @@ local function storedZlib(raw)
   return table.concat(parts)
 end
 
+-- Grayscale plus alpha (colour type 4): a gray byte and an alpha byte per
+-- pixel.  alpha[i] is 0 for transparent, anything else for opaque.
+function PNG.encodeGrayAlpha(pixels, alpha, width, height, shades)
+  local rows = {}
+  for y = 0, height - 1 do
+    local bytes = { "\0" }
+    local base = y * width
+    for x = 1, width do
+      bytes[#bytes + 1] = string.char(shades[pixels[base + x] + 1],
+        alpha[base + x] == 0 and 0 or 255)
+    end
+    rows[#rows + 1] = table.concat(bytes)
+  end
+  local ihdr = u32(width) .. u32(height) .. string.char(8, 4, 0, 0, 0)
+  return "\137PNG\r\n\26\n" .. chunk("IHDR", ihdr)
+    .. chunk("IDAT", storedZlib(table.concat(rows))) .. chunk("IEND", "")
+end
+
 function PNG.encodeGray(pixels, width, height, shades)
   local rows = {}
   for y = 0, height - 1 do

@@ -1,6 +1,6 @@
 local Cache = {}
 Cache.__index = Cache
-Cache.FORMAT = 1
+Cache.FORMAT = 3 -- 1: opaque white backgrounds, 2: matted, 3: matted and known gaps cleared
 
 function Cache.stamp(rom)
   return ("f%d-%02x%02x-%02x"):format(Cache.FORMAT, rom:u8(0x14E), rom:u8(0x14F),
