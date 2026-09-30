@@ -108,3 +108,15 @@ design before building further.
   against `C:/g2dev`, not `game/`, which is stale (see project notes).
 - Sprite sizes differ by species (5x5, 6x6, 7x7 tiles). The hook must accept
   non-standard dimensions.
+
+## Constraints found while planning
+
+- A background job has no `mod` object, so it cannot read the import. The
+  main thread reads the ROM with `mod.imports:read("crystal_rom", 0, 2097152)`
+  and passes the bytes to the job in its argument.
+- Library sources reach the job as strings, because a job cannot `require`.
+- The manifest needs the `background` permission for `mod.job`.
+- Frames are cached as PNGs under `mod_cache/<id>/` and referenced by path,
+  the same way Kanto-Reforged references its cached tileset.
+- Job budgets are clamped to 30 seconds and a mod may run two jobs at once,
+  so the decode runs in batches.
