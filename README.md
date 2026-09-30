@@ -10,7 +10,7 @@ the download. The animation below is a capture of the running game and is not
 part of the mod.
 
 <p align="center">
-  <img src="images/animation.gif" alt="One loop of Pikachu's Crystal animation in Pokemon Red" width="280">
+  <img src="images/pikachu.gif" alt="One loop of Pikachu's Crystal animation in Pokemon Red" width="280">
 </p>
 
 ## What you get
