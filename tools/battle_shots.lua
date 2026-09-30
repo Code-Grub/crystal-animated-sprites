@@ -47,6 +47,7 @@ return function(game)
   U.log("enemy sprite image:", tostring(enemy and enemy.sprite))
   for i = 1, SHOTS do
     U.shot(game, ("%s/%s_%02d.png"):format(DIR, SPECIES, i))
+    U.log("shot", i, U.frame())
     U.wait(GAP)
   end
   U.log("done", SPECIES)

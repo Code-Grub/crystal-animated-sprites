@@ -1,3 +1,4 @@
+images/ export-ignore
 docs/ export-ignore
 tools/ export-ignore
 tests/ export-ignore
