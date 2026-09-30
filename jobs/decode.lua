@@ -11,7 +11,7 @@ local function need(name)
   return loaded[name]
 end
 
-local Rom, Anim, PNG = need("rom"), need("anim"), need("png")
+local Rom, Anim, PNG, Pic = need("rom"), need("anim"), need("png"), need("pic")
 local SHADES = { 255, 170, 85, 0 }
 local rom = Rom.new(arg.rom)
 
@@ -19,14 +19,16 @@ local species, errors = {}, {}
 for dex = arg.first, arg.last do
   local ok, res = pcall(function()
     local r = Anim.decode(rom, dex)
-    local frames = {}
+    local frames, flipped = {}, {}
     for index, px in pairs(r.frames) do
       frames[index] = PNG.encodeGray(px, r.width, r.width, SHADES)
+      flipped[index] = PNG.encodeGray(Pic.mirror(px, r.width), r.width, r.width, SHADES)
     end
     return {
       size = r.size,
       timeline = r.timeline,
       frames = frames,
+      flipped = flipped,
       back = PNG.encodeGray(r.back, 48, 48, SHADES),
     }
   end)

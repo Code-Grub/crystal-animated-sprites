@@ -20,6 +20,7 @@ local result = {
   size = 6,
   timeline = { { frame = 1, ticks = 5 }, { frame = 0, ticks = 12 } },
   frames = { [0] = "PNG0", [1] = "PNG1" },
+  flipped = { [0] = "FLP0", [1] = "FLP1" },
   back = "PNGB",
 }
 
@@ -43,7 +44,8 @@ H.test("cache: a different stamp is not valid", function()
 end)
 
 H.test("cache: put then meta round-trips", function()
-  local c = Cache.new(fakeStore(), "s1", "m")
+  local store = fakeStore()
+  local c = Cache.new(store, "s1", "m")
   c:begin()
   H.eq(c:meta(25), nil, "absent before put")
   H.eq(c:put(25, result), true)
@@ -53,6 +55,8 @@ H.test("cache: put then meta round-trips", function()
   H.eq(m.timeline[1].frame, 1); H.eq(m.timeline[1].ticks, 5)
   H.eq(m.frames[0], true); H.eq(m.frames[1], true)
   H.eq(c:framePath(25, 1), "mod_cache/m/s1/front/025/1.png")
+  H.eq(c:framePath(25, 1, true), "mod_cache/m/s1/front/025/1m.png")
+  H.eq(store.files["s1/front/025/1m.png"], "FLP1", "mirrored frame stored")
   H.eq(c:backPath(25), "mod_cache/m/s1/back/025.png")
 end)
 
@@ -60,7 +64,7 @@ H.test("cache: meta is written last, so a failed write leaves no entry", functio
   local store = fakeStore(5)            -- rejects anything over 5 bytes
   local c = Cache.new(store, "s1", "m")
   c:begin()
-  local big = { size = 6, timeline = {}, frames = { [0] = "TOO LARGE" }, back = "B" }
+  local big = { size = 6, timeline = {}, frames = { [0] = "TOO LARGE" }, flipped = { [0] = "x" }, back = "B" }
   local ok, err = c:put(1, big)
   H.eq(ok, false)
   H.eq(type(err), "string")

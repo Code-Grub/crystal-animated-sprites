@@ -40,4 +40,14 @@ function Pic.compose(data, map, size, order)
   return out, width, width
 end
 
+function Pic.mirror(pixels, width)
+  local out, height = {}, #pixels / width
+  for y = 0, height - 1 do
+    for x = 0, width - 1 do
+      out[y * width + x + 1] = pixels[y * width + (width - 1 - x) + 1]
+    end
+  end
+  return out
+end
+
 return Pic

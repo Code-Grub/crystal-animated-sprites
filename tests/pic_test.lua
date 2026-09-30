@@ -63,3 +63,7 @@ H.test("pic: compose honours a non-identity map", function()
   local px = Pic.compose(solidTiles(), { 3, 3, 3, 3 }, 2, "rows")
   H.eq(px[1], 3); H.eq(px[8 * 16 + 9], 3)
 end)
+
+H.test("pic: mirror reverses each row", function()
+  H.arrayEq(Pic.mirror({ 1, 2, 3, 0, 1, 2 }, 3), { 3, 2, 1, 2, 1, 0 })
+end)

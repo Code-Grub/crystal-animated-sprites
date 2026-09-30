@@ -38,6 +38,8 @@ else
       local s = assert(r.species[dex], "species " .. dex)
       H.eq(s.back:sub(2, 4), "PNG")
       H.eq(s.frames[0]:sub(2, 4), "PNG")
+      H.eq(s.flipped[0]:sub(2, 4), "PNG")
+      H.eq(s.flipped[0] ~= s.frames[0], true, "mirrored differs from original")
       H.eq(#s.timeline > 0, true)
     end
   end)

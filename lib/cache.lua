@@ -21,8 +21,9 @@ function Cache:begin()
   return self.store.write("stamp", self.stamp)
 end
 
-function Cache:framePath(dex, index)
-  return ("mod_cache/%s/%s/front/%03d/%d.png"):format(self.modId, self.stamp, dex, index)
+function Cache:framePath(dex, index, mirrored)
+  return ("mod_cache/%s/%s/front/%03d/%d%s.png"):format(self.modId, self.stamp, dex,
+    index, mirrored and "m" or "")
 end
 
 function Cache:backPath(dex)
@@ -57,6 +58,11 @@ function Cache:put(dex, result)
     local ok, err = self.store.write(self:key(("front/%03d/%d.png"):format(dex, index)),
       result.frames[index])
     if not ok then return false, tostring(err) end
+    local mirrored = result.flipped and result.flipped[index]
+    if mirrored then
+      ok, err = self.store.write(self:key(("front/%03d/%dm.png"):format(dex, index)), mirrored)
+      if not ok then return false, tostring(err) end
+    end
   end
   local ok, err = self.store.write(self:key(("back/%03d.png"):format(dex)), result.back)
   if not ok then return false, tostring(err) end
