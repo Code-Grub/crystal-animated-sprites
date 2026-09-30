@@ -6,12 +6,12 @@ Gen1Recomp, decoded from your own Pokemon Crystal ROM.
 **No artwork is included.** The mod reads the sprites, animation frames and
 timing straight out of a Crystal ROM that you supply, builds them once, and
 keeps the result in the mod's own cache. Nothing from the ROM is ever part of
-the download. The pictures below are captures of the running game and are not
+the download. The animation below is a capture of the running game and is not
 part of the mod.
 
-![A wild Pikachu in Pokemon Red, drawn with Crystal's sprites](images/battle.png)
-
-![One loop of Pikachu's Crystal animation](images/animation.gif)
+<p align="center">
+  <img src="images/animation.gif" alt="One loop of Pikachu's Crystal animation in Pokemon Red" width="280">
+</p>
 
 ## What you get
 
