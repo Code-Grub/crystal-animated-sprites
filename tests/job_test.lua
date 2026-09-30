@@ -21,7 +21,7 @@ end
 
 local function libs()
   local out = {}
-  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back" }) do
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back", "edits" }) do
     out[n] = readFile("lib/" .. n .. ".lua")
   end
   return out
@@ -144,6 +144,26 @@ if H.rom() then
       H.eq(alphaAt(r.species[d[1]].back, 48, d[3], d[4]), 255,
         ("dex %d back (%d,%d) is meant to be white and must stay"):format(d[1], d[3], d[4]))
     end
+  end)
+
+  H.test("job: hand edits apply to all frames, to one frame, and to the back sprite", function()
+    local l = libs()
+    -- injected edits: keep the top row in every front frame, keep row 1 in frame 1 only,
+    -- clear Pikachu's near eye glint, and keep the back sprite's top row
+    l.edits = [[return {
+      front = { [25] = { all = { { 0, 0, 39, "keep" }, { 13, 15, 15, "clear" } }, [1] = { { 1, 0, 39, "keep" } } } },
+      back = { [25] = { { 0, 0, 47, "keep" } } },
+    }]]
+    local r = runJob({ rom = H.rom(), libs = l, first = 25, last = 25 })
+    local s = assert(r.species[25], "species 25")
+    local w = s.size * 8
+    H.eq(alphaAt(s.frames[0], w, 0, 0), 255, "all-frames keep, frame 0")
+    H.eq(alphaAt(s.frames[2], w, 0, 0), 255, "all-frames keep, frame 2")
+    H.eq(alphaAt(s.frames[1], w, 0, 1), 255, "frame-1 keep applies in frame 1")
+    H.eq(alphaAt(s.frames[0], w, 0, 1), 0, "frame-1 keep does not leak into frame 0")
+    H.eq(alphaAt(s.frames[0], w, 15, 13), 0, "the eye glint cleared by hand")
+    H.eq(alphaAt(s.flipped[0], w, w - 1, 0), 255, "mirrored copies follow the edits")
+    H.eq(alphaAt(s.back, 48, 0, 0), 255, "back sprite edit")
   end)
 
   H.test("job: Pikachu's tail-base gap is cleared and his eye glints are not", function()

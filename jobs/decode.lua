@@ -12,7 +12,7 @@ local function need(name)
 end
 
 local Rom, Anim, PNG, Pic = need("rom"), need("anim"), need("png"), need("pic")
-local Specks, SpecksBack = need("specks"), need("specks_back")
+local Specks, SpecksBack, Edits = need("specks"), need("specks_back"), need("edits")
 local SHADES = { 255, 170, 85, 0 }
 local rom = Rom.new(arg.rom)
 
@@ -28,6 +28,11 @@ for dex = arg.first, arg.last do
     local frames, flipped = {}, {}
     for index, px in pairs(r.frames) do
       local alpha = Pic.matte(px, r.width, Specks[dex])
+      local hand = Edits.front[dex]
+      if hand then
+        Pic.applyEdits(px, alpha, r.width, hand.all)
+        Pic.applyEdits(px, alpha, r.width, hand[index])
+      end
       frames[index] = encode(px, alpha, r.width)
       flipped[index] = encode(Pic.mirror(px, r.width), Pic.mirror(alpha, r.width), r.width)
     end
@@ -36,7 +41,7 @@ for dex = arg.first, arg.last do
       timeline = r.timeline,
       frames = frames,
       flipped = flipped,
-      back = encode(r.back, Pic.matte(r.back, 48, SpecksBack[dex]), 48),
+      back = encode(r.back, Pic.applyEdits(r.back, Pic.matte(r.back, 48, SpecksBack[dex]), 48, Edits.back[dex]), 48),
     }
   end)
   if ok then species[dex] = res else errors[dex] = tostring(res) end

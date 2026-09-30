@@ -193,3 +193,43 @@ H.test("pic: matte clears two listed regions independently", function()
   local a = Pic.matte(px, 9, { { 2, 2 }, { 6, 2 } })
   H.eq(a[21], 0, "first region"); H.eq(a[25], 0, "second region")
 end)
+
+-- Hand edits: runs { y, x1, x2, "clear" | "keep" } applied on top of the matte.
+-- Only colour-0 (white) pixels are ever changed.
+H.test("pic: applyEdits clears and restores white pixels", function()
+  local px = {
+    0, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 3, 0,
+    0, 0, 0, 0,
+  }
+  local a = Pic.matte(px, 4)
+  -- every white pixel here touches the edge, so the matte makes them all transparent
+  H.eq(a[1], 0, "background starts transparent")
+  Pic.applyEdits(px, a, 4, { { 0, 0, 1, "keep" }, { 1, 2, 3, "clear" } })
+  H.eq(a[1], 1, "a kept run makes background opaque"); H.eq(a[2], 1)
+  H.eq(a[7], 0, "a cleared run stays clear")
+end)
+
+H.test("pic: applyEdits never changes a pixel that is not white", function()
+  local px = { 0, 0, 0, 0, 1, 2, 3, 0 }
+  local a = Pic.matte(px, 4)
+  Pic.applyEdits(px, a, 4, { { 1, 0, 3, "clear" } })
+  H.arrayEq(a, { 0, 0, 0, 0, 1, 1, 1, 0 }, "shaded and black pixels stay opaque")
+end)
+
+H.test("pic: applyEdits ignores runs outside the pic and unknown actions", function()
+  local px = { 0, 0, 0, 0 }
+  local a = Pic.matte(px, 2)
+  Pic.applyEdits(px, a, 2, { { 5, 0, 1, "keep" }, { -1, 0, 1, "keep" }, { 0, 0, 1, "paint" } })
+  H.arrayEq(a, { 0, 0, 0, 0 })
+  Pic.applyEdits(px, a, 2, { { 0, -3, 9, "keep" } })
+  H.arrayEq(a, { 1, 1, 0, 0 }, "a run wider than the pic is clipped to it")
+end)
+
+H.test("pic: applyEdits takes nil as no edits", function()
+  local px = { 0, 0, 0, 0 }
+  local a = Pic.matte(px, 2)
+  Pic.applyEdits(px, a, 2, nil)
+  H.arrayEq(a, { 0, 0, 0, 0 })
+end)

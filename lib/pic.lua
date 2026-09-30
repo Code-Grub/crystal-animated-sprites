@@ -104,6 +104,26 @@ function Pic.matte(pixels, width, known)
   return alpha
 end
 
+-- Hand edits on top of the matte: runs { y, x1, x2, "clear" | "keep" }.  "clear"
+-- makes white pixels transparent, "keep" makes them opaque.  Only colour-0
+-- (white) pixels are ever changed, so an edit can never punch through the
+-- sprite's own art, and anything outside the pic or with another action is
+-- ignored.  Returns the same alpha table.
+function Pic.applyEdits(pixels, alpha, width, runs)
+  local height = #pixels / width
+  for _, run in ipairs(runs or {}) do
+    local y, x1, x2, action = run[1], run[2], run[3], run[4]
+    if y >= 0 and y < height and (action == "clear" or action == "keep") then
+      local value = action == "keep" and 1 or 0
+      for x = math.max(0, x1), math.min(width - 1, x2) do
+        local i = y * width + x + 1
+        if pixels[i] == 0 then alpha[i] = value end
+      end
+    end
+  end
+  return alpha
+end
+
 function Pic.mirror(pixels, width)
   local out, height = {}, #pixels / width
   for y = 0, height - 1 do

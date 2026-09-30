@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite transparency editor</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --ink: #1c2333; --muted: #5d667a; --line: #d8dce6;
+    --accent: #2457c5; --clear: #c0392b; --keep: #1f7a4d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171f; --panel: #1e222d; --ink: #e8ebf2; --muted: #98a1b5; --line: #2f3545;
+            --accent: #7aa2ff; --clear: #ff6b5e; --keep: #4cc38a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  h1 { font-size: 17px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr) 300px; gap: 14px; padding: 14px 16px; align-items: start; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+  input[type=search], select { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line);
+    border-radius: 7px; background: var(--bg); color: var(--ink); }
+  #list { height: 62vh; overflow: auto; border: 1px solid var(--line); border-radius: 7px; margin-top: 8px; background: var(--bg); }
+  #list div { padding: 4px 8px; cursor: pointer; display: flex; justify-content: space-between; }
+  #list div:hover { background: rgba(127,127,127,.15); }
+  #list div.here { background: var(--accent); color: #fff; }
+  #list .dot { color: var(--keep); font-weight: 700; }
+  #list div.here .dot { color: #fff; }
+  .stage { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  canvas { image-rendering: pixelated; border: 1px solid var(--line); border-radius: 8px; cursor: crosshair; max-width: 100%; height: auto; }
+  .strip { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .strip canvas { cursor: pointer; border-width: 2px; }
+  .strip canvas.here { border-color: var(--accent); }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+           border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.clear.on { background: var(--clear); border-color: var(--clear); }
+  button.keep.on { background: var(--keep); border-color: var(--keep); }
+  kbd { font: 11px ui-monospace, Consolas, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; background: rgba(127,127,127,.15); }
+  label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+  .hint { color: var(--muted); font-size: 12px; }
+  textarea { width: 100%; min-height: 150px; font: 11px ui-monospace, Consolas, monospace; background: var(--bg); color: var(--ink);
+             border: 1px solid var(--line); border-radius: 7px; padding: 6px; }
+  .legend span { display: inline-block; width: 11px; height: 11px; border: 1px solid var(--line); vertical-align: -1px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sprite transparency editor</h1>
+  <p class="sub">Shows each sprite as it ships today. Flip white areas to transparent or opaque, for one animation frame or all of them.</p>
+</header>
+<div class="layout">
+  <section class="card">
+    <h2>Pokemon</h2>
+    <input id="search" type="search" placeholder="Search name or number">
+    <div id="list"></div>
+  </section>
+
+  <section class="card stage">
+    <div class="row" style="justify-content:center">
+      <button id="kindFront" class="on">Front<kbd>F</kbd></button>
+      <button id="kindBack">Back<kbd>G</kbd></button>
+      <span id="title" style="font-weight:600;margin:0 10px"></span>
+      <button id="prev">&larr;<kbd>&larr;</kbd></button>
+      <button id="next">&rarr;<kbd>&rarr;</kbd></button>
+    </div>
+    <canvas id="main"></canvas>
+    <div class="strip" id="strip"></div>
+    <div class="hint" id="status"></div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2>Tool</h2>
+      <div class="row">
+        <button id="toolRegion" class="on">Flip region<kbd>1</kbd></button>
+        <button id="toolClear" class="clear">Paint transparent<kbd>2</kbd></button>
+        <button id="toolKeep" class="keep">Paint opaque<kbd>3</kbd></button>
+      </div>
+      <div class="row">Brush size
+        <select id="brush" style="width:auto"><option>1</option><option>2</option><option>3</option><option>5</option></select>
+      </div>
+      <div class="row">Apply to
+        <label><input type="radio" name="scope" value="frame" checked> this frame</label>
+        <label><input type="radio" name="scope" value="all"> all frames</label>
+      </div>
+      <div class="row">
+        <button id="undo">Undo<kbd>Z</kbd></button>
+        <button id="reset">Reset this sprite</button>
+      </div>
+      <p class="hint">Flip region: click a white area and everything white and connected to it with the same state flips.
+      Paint: click or drag over white pixels. Only white pixels ever change; the sprite's own art is never touched.</p>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2>View</h2>
+      <div class="row">Backdrop
+        <select id="backdrop" style="width:auto">
+          <option value="blue">Blue</option><option value="dark">Dark</option>
+          <option value="light">Light</option><option value="checker">Checker</option>
+        </select>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="mark" checked> Tint opaque white</label>
+        <label><input type="checkbox" id="grid"> Grid</label>
+      </div>
+      <div class="legend hint"><span style="background:#ffe3ea"></span>opaque white &nbsp;
+        <span style="background:#2b5fab"></span>see-through</div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2>Your edits <span id="count" class="hint"></span></h2>
+      <div class="row"><button id="copy">Copy as lib/edits.lua</button><button id="resetAll">Discard all</button></div>
+      <div class="hint" id="copied"></div>
+      <textarea id="out" readonly spellcheck="false"></textarea>
+      <p class="hint">Saved in this browser as you go. When you are done, press Copy and paste it into the chat.</p>
+    </div>
+  </section>
+</div>
+
+<script src="../out/editor_data.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------- pure logic
+  var Logic = {};
+
+  // alpha string ("0"/"1" per pixel) to a Uint8Array
+  Logic.alphaFrom = function (bits) {
+    var a = new Uint8Array(bits.length);
+    for (var i = 0; i < bits.length; i++) a[i] = bits.charCodeAt(i) === 49 ? 1 : 0;
+    return a;
+  };
+
+  // edits: object index -> "clear" | "keep".  Only white (colour 0) pixels change.
+  Logic.apply = function (alpha, px, edits) {
+    for (var k in edits) {
+      var i = +k;
+      if (px.charAt(i) === "0") alpha[i] = edits[k] === "keep" ? 1 : 0;
+    }
+    return alpha;
+  };
+
+  // the white pixels connected to `start` that share its current state
+  Logic.flood = function (px, w, alpha, start) {
+    if (px.charAt(start) !== "0") return [];
+    var state = alpha[start], seen = new Uint8Array(px.length), out = [start], head = 0;
+    seen[start] = 1;
+    while (head < out.length) {
+      var i = out[head++], x = i % w, y = (i - x) / w, n = [];
+      if (x > 0) n.push(i - 1);
+      if (x < w - 1) n.push(i + 1);
+      if (y > 0) n.push(i - w);
+      if (y < w - 1) n.push(i + w);
+      for (var k = 0; k < n.length; k++) {
+        var j = n[k];
+        if (!seen[j] && px.charAt(j) === "0" && alpha[j] === state) { seen[j] = 1; out.push(j); }
+      }
+    }
+    return out;
+  };
+
+  // overrides to runs { y, x1, x2, action } (rows, left to right)
+  Logic.toRuns = function (edits, w) {
+    var idx = Object.keys(edits).map(Number).sort(function (a, b) { return a - b; });
+    var runs = [];
+    idx.forEach(function (i) {
+      var y = Math.floor(i / w), x = i % w, act = edits[i], last = runs[runs.length - 1];
+      if (last && last[0] === y && last[2] === x - 1 && last[3] === act) last[2] = x;
+      else runs.push([y, x, x, act]);
+    });
+    return runs;
+  };
+
+  Logic.fromRuns = function (runs, w) {
+    var e = {};
+    (runs || []).forEach(function (r) {
+      for (var x = r[1]; x <= r[2]; x++) e[r[0] * w + x] = r[3];
+    });
+    return e;
+  };
+
+  var ACTIONS = { clear: 1, keep: 1 };
+  Logic.luaRuns = function (runs) {
+    return "{ " + runs.map(function (r) { return "{ " + r[0] + ", " + r[1] + ", " + r[2] + ", \"" + r[3] + "\" }"; }).join(", ") + " }";
+  };
+
+  // the whole edit set as the text of lib/edits.lua
+  Logic.toLua = function (edits, widths) {
+    var lines = [
+      "-- Hand edits made in tools/editor.html, applied on top of the automatic matte.",
+      "--",
+      "--   front[dex] = { all = runs, [frame] = runs }   runs for every animation frame,",
+      "--                                                 and for one frame on top of those",
+      "--   back[dex]  = runs",
+      "--",
+      "-- A run is { y, x1, x2, \"clear\" | \"keep\" } on the pic's pixel grid: \"clear\" makes",
+      "-- white pixels transparent, \"keep\" makes them opaque (see Pic.applyEdits).",
+      "return {", "  front = {"
+    ];
+    Object.keys(edits.front).map(Number).sort(function (a, b) { return a - b; }).forEach(function (dex) {
+      var scopes = edits.front[dex], parts = [];
+      if (scopes.all && Object.keys(scopes.all).length) parts.push("all = " + Logic.luaRuns(Logic.toRuns(scopes.all, widths[dex])));
+      Object.keys(scopes).filter(function (s) { return s !== "all" && Object.keys(scopes[s]).length; })
+        .map(Number).sort(function (a, b) { return a - b; }).forEach(function (f) {
+          parts.push("[" + f + "] = " + Logic.luaRuns(Logic.toRuns(scopes[f], widths[dex])));
+        });
+      if (parts.length) lines.push("    [" + dex + "] = { " + parts.join(", ") + " },");
+    });
+    lines.push("  },", "  back = {");
+    Object.keys(edits.back).map(Number).sort(function (a, b) { return a - b; }).forEach(function (dex) {
+      if (Object.keys(edits.back[dex]).length) lines.push("    [" + dex + "] = " + Logic.luaRuns(Logic.toRuns(edits.back[dex], 48)) + ",");
+    });
+    lines.push("  },", "}", "");
+    return lines.join("\n");
+  };
+
+  window.__editorLogic = Logic;
+  if (typeof document === "undefined" || !document.getElementById("main")) return;
+
+  // ------------------------------------------------------------------- the page
+  var DATA = window.EDITOR || { names: [], sprites: {}, edits: { front: {}, back: {} } };
+  var STORE = "sprite-editor-v1";
+  var SHADES = ["#ffffff", "#aaaaaa", "#555555", "#000000"];
+  var BACKDROPS = { blue: "#2b5fab", dark: "#101318", light: "#e9ecf2", checker: null };
+
+  function $(id) { return document.getElementById(id); }
+  var widths = {};
+  Object.keys(DATA.sprites).forEach(function (d) { widths[d] = DATA.sprites[d].w; });
+
+  // edits: { front: { dex: { all: {i:act}, frame: {i:act} } }, back: { dex: {i:act} } }
+  var edits = { front: {}, back: {} };
+  try { var saved = JSON.parse(localStorage.getItem(STORE) || "null"); if (saved && saved.front && saved.back) edits = saved; } catch (e) {}
+  if (!Object.keys(edits.front).length && !Object.keys(edits.back).length) edits = seedFromShipped();
+
+  function seedFromShipped() {
+    var out = { front: {}, back: {} }, E = DATA.edits || { front: {}, back: {} };
+    Object.keys(E.front).forEach(function (dex) {
+      out.front[dex] = {};
+      Object.keys(E.front[dex]).forEach(function (scope) { out.front[dex][scope] = Logic.fromRuns(E.front[dex][scope], widths[dex]); });
+    });
+    Object.keys(E.back).forEach(function (dex) { out.back[dex] = Logic.fromRuns(E.back[dex], 48); });
+    return out;
+  }
+
+  var st = { dex: 1, kind: "front", frame: 0, tool: "region", undo: [], hover: [] };
+  var canvas = $("main"), ctx = canvas.getContext("2d");
+
+  function sprite() { return DATA.sprites[st.dex]; }
+  function framesOf() { return sprite().front; }
+  function current() {
+    var s = sprite();
+    if (st.kind === "back") return { px: s.back.px, a: s.back.a, w: 48 };
+    var fr = s.front.filter(function (f) { return f.f === st.frame; })[0] || s.front[0];
+    st.frame = fr.f;
+    return { px: fr.px, a: fr.a, w: s.w };
+  }
+  function scopeMaps() {     // in application order
+    if (st.kind === "back") return [edits.back[st.dex] || {}];
+    var e = edits.front[st.dex] || {};
+    return [e.all || {}, e[st.frame] || {}];
+  }
+  function effective(cur, upTo) {   // auto alpha with edits applied; upTo limits how many scopes
+    var a = Logic.alphaFrom(cur.a), maps = scopeMaps();
+    for (var i = 0; i < (upTo === undefined ? maps.length : upTo); i++) Logic.apply(a, cur.px, maps[i]);
+    return a;
+  }
+  function targetMap(create) {
+    var scope = document.querySelector("input[name=scope]:checked").value;
+    if (st.kind === "back") {
+      if (create && !edits.back[st.dex]) edits.back[st.dex] = {};
+      return { map: edits.back[st.dex], level: 0 };
+    }
+    var key = scope === "all" ? "all" : st.frame;
+    if (create) { edits.front[st.dex] = edits.front[st.dex] || {}; edits.front[st.dex][key] = edits.front[st.dex][key] || {}; }
+    return { map: (edits.front[st.dex] || {})[key], level: scope === "all" ? 0 : 1 };
+  }
+
+  function setPixels(list, action) {
+    var cur = current(), t = targetMap(true), base = effective(cur, t.level);
+    snapshot();
+    list.forEach(function (i) {
+      if (cur.px.charAt(i) !== "0") return;
+      var baseState = base[i] ? "keep" : "clear";
+      if (action === baseState) delete t.map[i]; else t.map[i] = action;
+    });
+    changed();
+  }
+
+  function snapshot() { st.undo.push(JSON.stringify(edits)); if (st.undo.length > 200) st.undo.shift(); }
+  function changed() {
+    try { localStorage.setItem(STORE, JSON.stringify(edits)); } catch (e) {}
+    render();
+  }
+
+  // ------------------------------------------------------------------ drawing
+  function paint(cx, a, cur, scale, opts) {
+    var w = cur.w, b = opts.backdrop;
+    if (b === "checker") {
+      for (var y = 0; y < w * scale; y += 8) for (var x = 0; x < w * scale; x += 8) {
+        cx.fillStyle = ((x + y) / 8) % 2 ? "#c9ced8" : "#eef0f5"; cx.fillRect(x, y, 8, 8);
+      }
+    } else { cx.fillStyle = BACKDROPS[b]; cx.fillRect(0, 0, w * scale, w * scale); }
+    for (var i = 0; i < cur.px.length; i++) {
+      if (!a[i]) continue;
+      var ch = cur.px.charCodeAt(i) - 48;
+      cx.fillStyle = (ch === 0 && opts.mark) ? "#ffe3ea" : SHADES[ch];
+      cx.fillRect((i % w) * scale, Math.floor(i / w) * scale, scale, scale);
+    }
+  }
+
+  function render() {
+    var cur = current(), a = effective(cur), scale = Math.max(4, Math.floor(560 / cur.w));
+    canvas.width = cur.w * scale; canvas.height = cur.w * scale;
+    paint(ctx, a, cur, scale, { backdrop: $("backdrop").value, mark: $("mark").checked });
+    if ($("grid").checked && scale >= 8) {
+      ctx.strokeStyle = "rgba(127,127,127,.35)"; ctx.lineWidth = 1; ctx.beginPath();
+      for (var g = 0; g <= cur.w; g++) { ctx.moveTo(g * scale + .5, 0); ctx.lineTo(g * scale + .5, cur.w * scale); ctx.moveTo(0, g * scale + .5); ctx.lineTo(cur.w * scale, g * scale + .5); }
+      ctx.stroke();
+    }
+    if (st.hover.length) {
+      ctx.fillStyle = "rgba(255,235,59,.55)";
+      st.hover.forEach(function (i) { ctx.fillRect((i % cur.w) * scale, Math.floor(i / cur.w) * scale, scale, scale); });
+    }
+    var name = DATA.names[st.dex - 1] || "?";
+    $("title").textContent = "#" + st.dex + " " + name + (st.kind === "back" ? " (back)" : " (front, frame " + st.frame + ")");
+    // thumbnails of every pic of this species on the chosen backdrop
+    var strip = $("strip"); strip.textContent = "";
+    var items = framesOf().map(function (f) { return { kind: "front", frame: f.f, px: f.px, a: f.a, w: sprite().w, label: "frame " + f.f }; });
+    items.push({ kind: "back", frame: 0, px: sprite().back.px, a: sprite().back.a, w: 48, label: "back" });
+    items.forEach(function (it) {
+      var c = document.createElement("canvas"), sc = 2;
+      c.width = it.w * sc; c.height = it.w * sc; c.title = it.label;
+      var saveKind = st.kind, saveFrame = st.frame;
+      st.kind = it.kind; st.frame = it.frame;
+      var curT = { px: it.px, a: it.a, w: it.w }, aT = effective(curT);
+      st.kind = saveKind; st.frame = saveFrame;
+      paint(c.getContext("2d"), aT, curT, sc, { backdrop: $("backdrop").value, mark: false });
+      if (it.kind === st.kind && (it.kind === "back" || it.frame === st.frame)) c.className = "here";
+      c.onclick = function () { st.kind = it.kind; st.frame = it.frame; syncKind(); render(); };
+      strip.appendChild(c);
+    });
+    // edit counts and list
+    var n = 0, here = 0;
+    Object.keys(edits.front).forEach(function (d) { Object.keys(edits.front[d]).forEach(function (s) { var c = Object.keys(edits.front[d][s]).length; n += c; if (+d === st.dex) here += c; }); });
+    Object.keys(edits.back).forEach(function (d) { var c = Object.keys(edits.back[d]).length; n += c; if (+d === st.dex) here += c; });
+    $("count").textContent = "(" + n + " pixels; " + here + " on this Pokemon)";
+    $("status").textContent = "Click a white area to flip it. Yellow shows what a click would flip.";
+    $("out").value = Logic.toLua(edits, widths);
+    renderList();
+  }
+
+  var listBuilt = false;
+  function renderList() {
+    var box = $("list"), q = $("search").value.toLowerCase();
+    box.textContent = "";
+    DATA.names.forEach(function (nm, i) {
+      var dex = i + 1;
+      if (q && (nm.toLowerCase().indexOf(q) < 0 && String(dex).indexOf(q) < 0)) return;
+      var row = document.createElement("div"), has = Object.keys(edits.front[dex] || {}).some(function (s) { return Object.keys(edits.front[dex][s]).length; })
+        || Object.keys(edits.back[dex] || {}).length;
+      row.className = dex === st.dex ? "here" : "";
+      row.innerHTML = "<span>#" + dex + " " + nm + "</span><span class='dot'>" + (has ? "●" : "") + "</span>";
+      row.onclick = function () { st.dex = dex; st.frame = 0; render(); };
+      box.appendChild(row);
+    });
+  }
+
+  function syncKind() {
+    $("kindFront").className = st.kind === "front" ? "on" : "";
+    $("kindBack").className = st.kind === "back" ? "on" : "";
+    var scopeInputs = document.querySelectorAll("input[name=scope]");
+    for (var i = 0; i < scopeInputs.length; i++) scopeInputs[i].disabled = st.kind === "back";
+  }
+
+  // ------------------------------------------------------------------- events
+  function pixelAt(ev) {
+    var r = canvas.getBoundingClientRect(), cur = current();
+    var x = Math.floor((ev.clientX - r.left) / r.width * cur.w), y = Math.floor((ev.clientY - r.top) / r.height * cur.w);
+    return (x < 0 || y < 0 || x >= cur.w || y >= cur.w) ? -1 : y * cur.w + x;
+  }
+  function brushPixels(center) {
+    var cur = current(), n = +$("brush").value, half = Math.floor(n / 2), out = [];
+    var cx = center % cur.w, cy = Math.floor(center / cur.w);
+    for (var dy = -half; dy < n - half; dy++) for (var dx = -half; dx < n - half; dx++) {
+      var x = cx + dx, y = cy + dy;
+      if (x >= 0 && y >= 0 && x < cur.w && y < cur.w) out.push(y * cur.w + x);
+    }
+    return out;
+  }
+  var painting = false;
+  function act(ev, first) {
+    var p = pixelAt(ev);
+    if (p < 0) return;
+    var cur = current(), a = effective(cur);
+    if (st.tool === "region") {
+      if (!first) return;
+      var region = Logic.flood(cur.px, cur.w, a, p);
+      if (region.length) setPixels(region, a[p] ? "clear" : "keep");
+    } else {
+      setPixels(brushPixels(p), st.tool === "clear" ? "clear" : "keep");
+    }
+  }
+  canvas.addEventListener("mousedown", function (ev) { painting = true; act(ev, true); });
+  window.addEventListener("mouseup", function () { painting = false; });
+  canvas.addEventListener("mousemove", function (ev) {
+    if (painting && st.tool !== "region") { act(ev, false); return; }
+    var p = pixelAt(ev), cur = current();
+    var next = p < 0 ? [] : st.tool === "region" ? Logic.flood(cur.px, cur.w, effective(cur), p) : brushPixels(p).filter(function (i) { return cur.px.charAt(i) === "0"; });
+    if (next.length !== st.hover.length || next[0] !== st.hover[0]) { st.hover = next; render(); }
+  });
+  canvas.addEventListener("mouseleave", function () { if (st.hover.length) { st.hover = []; render(); } });
+
+  function setTool(t) {
+    st.tool = t;
+    $("toolRegion").className = t === "region" ? "on" : "";
+    $("toolClear").className = "clear" + (t === "clear" ? " on" : "");
+    $("toolKeep").className = "keep" + (t === "keep" ? " on" : "");
+  }
+  function step(n) {
+    if (st.kind === "back") return;
+    var fs = framesOf().map(function (f) { return f.f; }), i = fs.indexOf(st.frame);
+    st.frame = fs[(i + n + fs.length) % fs.length]; render();
+  }
+  function species(n) { st.dex = Math.max(1, Math.min(151, st.dex + n)); st.frame = 0; render(); }
+
+  $("kindFront").onclick = function () { st.kind = "front"; syncKind(); render(); };
+  $("kindBack").onclick = function () { st.kind = "back"; syncKind(); render(); };
+  $("prev").onclick = function () { step(-1); };
+  $("next").onclick = function () { step(1); };
+  $("toolRegion").onclick = function () { setTool("region"); };
+  $("toolClear").onclick = function () { setTool("clear"); };
+  $("toolKeep").onclick = function () { setTool("keep"); };
+  ["backdrop", "mark", "grid"].forEach(function (id) { $(id).onchange = render; });
+  $("search").oninput = renderList;
+  $("undo").onclick = function () { if (st.undo.length) { edits = JSON.parse(st.undo.pop()); changed(); } };
+  $("reset").onclick = function () {
+    snapshot();
+    if (st.kind === "back") delete edits.back[st.dex]; else delete edits.front[st.dex];
+    changed();
+  };
+  $("resetAll").onclick = function () {
+    if (!confirm("Discard every edit in this browser and go back to the shipped ones?")) return;
+    snapshot(); edits = seedFromShipped(); changed();
+  };
+  $("copy").onclick = function () {
+    var box = $("out"); box.select();
+    var done = function () { $("copied").textContent = "Copied. Paste it into the chat."; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(box.value).then(done, function () { document.execCommand("copy"); done(); });
+    else { document.execCommand("copy"); done(); }
+  };
+  document.addEventListener("keydown", function (e) {
+    if (e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT" || e.target.tagName === "SELECT")) return;
+    var k = e.key.toLowerCase();
+    if (e.key === "ArrowLeft") step(-1); else if (e.key === "ArrowRight") step(1);
+    else if (e.key === "PageUp" || k === "[") species(-1); else if (e.key === "PageDown" || k === "]") species(1);
+    else if (k === "1") setTool("region"); else if (k === "2") setTool("clear"); else if (k === "3") setTool("keep");
+    else if (k === "z") $("undo").onclick(); else if (k === "f") $("kindFront").onclick(); else if (k === "g") $("kindBack").onclick();
+  });
+  syncKind(); setTool("region"); render();
+})();
+</script>
+</body>
+</html>
