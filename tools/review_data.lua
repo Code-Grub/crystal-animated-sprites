@@ -108,13 +108,13 @@ for dex = 1, 151 do
   if decisions then
     for _, d in ipairs(decisions.remove) do
       if d[1] == dex then
-        local region = regionAt(perFrame[0], d[3] * w + d[2])
+        local region = perFrame[d[2]] and regionAt(perFrame[d[2]], d[4] * w + d[3])
         if region then for _, c in ipairs(region.cells) do removeCells[c] = true end end
       end
     end
     for _, d in ipairs(decisions.keep) do
       if d[1] == dex then
-        local region = regionAt(perFrame[0], d[3] * w + d[2])
+        local region = perFrame[d[2]] and regionAt(perFrame[d[2]], d[4] * w + d[3])
         if region then for _, c in ipairs(region.cells) do keepCells[c] = true end end
       end
     end
@@ -123,7 +123,7 @@ for dex = 1, 151 do
   local emitted = {}          -- cells of candidates already listed for this species
   local seedSeen = {}
   for _, index in ipairs(frames) do
-    if index ~= 0 or not decisions then
+    if index ~= nil then
       for _, region in ipairs(perFrame[index]) do
         if region.blackOnly then
           local overRemove, overKeep = false, false
