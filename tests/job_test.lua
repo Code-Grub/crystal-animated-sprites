@@ -99,6 +99,39 @@ if H.rom() then
     return rawScanlines(png):byte(y * (1 + 2 * w) + 1 + 2 * x + 2)
   end
 
+  H.test("job: every region reviewed by hand is cleared or kept as decided", function()
+    local decisions = dofile("tests/review_decisions.lua")
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 1, last = 151 })
+    H.eq(next(r.errors), nil, "no species failed")
+    local function alpha(dex, x, y)
+      local sp = r.species[dex]
+      return alphaAt(sp.frames[0], sp.size * 8, x, y)
+    end
+    for _, d in ipairs(decisions.remove) do
+      H.eq(alpha(d[1], d[2], d[3]), 0, ("dex %d (%d,%d) is a hole and must be transparent"):format(d[1], d[2], d[3]))
+    end
+    for _, d in ipairs(decisions.keep) do
+      H.eq(alpha(d[1], d[2], d[3]), 255, ("dex %d (%d,%d) is meant to be white and must stay"):format(d[1], d[2], d[3]))
+    end
+  end)
+
+  H.test("job: a reviewed hole is cleared in every animation frame, a kept region in none", function()
+    local expect = dofile("tests/review_expectations.lua")
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 1, last = 151 })
+    local function alpha(dex, frame, x, y)
+      local sp = r.species[dex]
+      return alphaAt(sp.frames[frame], sp.size * 8, x, y)
+    end
+    for _, e in ipairs(expect.remove) do
+      H.eq(alpha(e[1], e[2], e[3], e[4]), 0,
+        ("dex %d frame %d (%d,%d) is the same hole in another pose"):format(e[1], e[2], e[3], e[4]))
+    end
+    for _, e in ipairs(expect.keep) do
+      H.eq(alpha(e[1], e[2], e[3], e[4]), 255,
+        ("dex %d frame %d (%d,%d) is a kept region and must stay"):format(e[1], e[2], e[3], e[4]))
+    end
+  end)
+
   H.test("job: Pikachu's tail-base gap is cleared and his eye glints are not", function()
     local r = runJob({ rom = H.rom(), libs = libs(), first = 25, last = 25 })
     local s = assert(r.species[25], "species 25")

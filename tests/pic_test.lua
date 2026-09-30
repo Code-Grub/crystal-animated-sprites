@@ -151,3 +151,45 @@ H.test("pic: a listed pixel that is not a speck is left alone", function()
   H.eq(Pic.matte(shine, 5, { { 2, 2 } })[13], 1, "a white pixel touching body colour stays")
   H.eq(Pic.matte(outline, 5, { { 9, 9 } })[13], 1, "a coordinate outside the pic is ignored")
 end)
+
+-- A listed pixel names a whole region: everything connected to it.
+H.test("pic: matte clears the whole region a listed pixel belongs to", function()
+  -- a 2x2 white hole inside a black ring that faces the background
+  local px = {
+    0, 0, 0, 0, 0, 0,
+    0, 3, 3, 3, 3, 0,
+    0, 3, 0, 0, 3, 0,
+    0, 3, 0, 0, 3, 0,
+    0, 3, 3, 3, 3, 0,
+    0, 0, 0, 0, 0, 0,
+  }
+  local a = Pic.matte(px, 6, { { 2, 2 } })
+  H.eq(a[15], 0, "the named pixel"); H.eq(a[16], 0, "its right neighbour")
+  H.eq(a[21], 0, "below it"); H.eq(a[22], 0, "the far corner of the region")
+  H.eq(a[8], 1, "the outline stays")
+end)
+
+H.test("pic: matte leaves a region that touches body colour even if the pixel is listed", function()
+  local px = {
+    0, 0, 0, 0, 0, 0,
+    0, 3, 3, 3, 3, 0,
+    0, 3, 0, 0, 1, 0,
+    0, 3, 0, 0, 3, 0,
+    0, 3, 3, 3, 3, 0,
+    0, 0, 0, 0, 0, 0,
+  }
+  local a = Pic.matte(px, 6, { { 2, 2 } })
+  H.eq(a[15], 1, "a shine next to body colour stays"); H.eq(a[22], 1, "and so does the rest")
+end)
+
+H.test("pic: matte clears two listed regions independently", function()
+  local px = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 3, 3, 3, 0, 3, 3, 3, 0,
+    0, 3, 0, 3, 0, 3, 0, 3, 0,
+    0, 3, 3, 3, 0, 3, 3, 3, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0,
+  }
+  local a = Pic.matte(px, 9, { { 2, 2 }, { 6, 2 } })
+  H.eq(a[21], 0, "first region"); H.eq(a[25], 0, "second region")
+end)

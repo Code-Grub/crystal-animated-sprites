@@ -67,20 +67,37 @@ function Pic.matte(pixels, width, known)
     if y < height - 1 then visit(x, y + 1) end
   end
 
-  -- Known blemishes: a single colour-0 pixel boxed in by the outline is often a
-  -- gap the edge fill cannot reach (Pikachu's tail base), but it can equally be
-  -- a glint in an eye, and the two look the same up close.  So a speck is
-  -- cleared only where the caller names it, and only if it really is a
-  -- walled-in white pixel with black on all four sides.
+  -- Known holes: a walled-in white region is often a real gap the edge fill
+  -- cannot reach (between a tail and a body, inside a hood), but it can equally
+  -- be something meant to be white (an eye, a tongue), and the two look the same
+  -- to code.  So a region is cleared only where the caller names a pixel of it,
+  -- and only while it is still bounded by black outline alone.  That last check
+  -- keeps a listed pixel from clearing the wrong thing in an animation frame
+  -- where the art around it is different.
   local BLACK = 3
   for _, at in ipairs(known or {}) do
     local x, y = at[1], at[2]
-    if x >= 1 and x < width - 1 and y >= 1 and y < height - 1 then
-      local i = y * width + x + 1
-      if pixels[i] == 0 and alpha[i] == 1
-         and pixels[i - 1] == BLACK and pixels[i + 1] == BLACK
-         and pixels[i - width] == BLACK and pixels[i + width] == BLACK then
-        alpha[i] = 0
+    local start = (x >= 0 and x < width and y >= 0 and y < height) and (y * width + x + 1)
+    if start and pixels[start] == 0 and alpha[start] == 1 then
+      local comp, members, qi, enclosed = { start }, { [start] = true }, 1, true
+      while qi <= #comp and enclosed do
+        local i = comp[qi]
+        qi = qi + 1
+        local cx, cy = (i - 1) % width, math.floor((i - 1) / width)
+        local around = { cx > 0 and i - 1, cx < width - 1 and i + 1,
+                         cy > 0 and i - width, cy < height - 1 and i + width }
+        for k = 1, 4 do
+          local n = around[k]
+          if not n then enclosed = false break end
+          if pixels[n] == 0 and alpha[n] == 1 then
+            if not members[n] then members[n] = true; comp[#comp + 1] = n end
+          elseif pixels[n] ~= BLACK then
+            enclosed = false break
+          end
+        end
+      end
+      if enclosed then
+        for _, i in ipairs(comp) do alpha[i] = 0 end
       end
     end
   end

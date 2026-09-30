@@ -33,8 +33,10 @@ end)
 H.test("cache: the format moved past the opaque-background caches", function()
   -- Format 1 held pics with an opaque white background.  A player who ran
   -- that version must get a fresh decode, which a new stamp forces.
-  H.eq(Cache.FORMAT >= 2, true, "FORMAT")
-  H.eq(Cache.stamp({ u8 = function() return 0 end }):sub(1, 3) ~= "f1-", true)
+  -- 3 shipped with v0.1.1 (matted, Pikachu's gap only).  Caches built by that
+  -- version lack the regions cleared since, so the format must have moved on.
+  H.eq(Cache.FORMAT >= 4, true, "FORMAT")
+  H.eq(Cache.stamp({ u8 = function() return 0 end }):sub(1, 3) ~= "f3-", true)
 end)
 
 H.test("cache: fresh store is not valid until begun", function()

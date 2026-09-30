@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprite hole review</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --ink: #1c2333; --muted: #5d667a; --line: #d8dce6;
+    --remove: #c0392b; --keep: #1f7a4d; --accent: #2457c5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14171f; --panel: #1e222d; --ink: #e8ebf2; --muted: #98a1b5; --line: #2f3545;
+            --remove: #ff6b5e; --keep: #4cc38a; --accent: #7aa2ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 10px 0 4px; }
+  .bar > div { height: 100%; background: var(--accent); width: 0; transition: width .15s; }
+  .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+          padding: 16px; margin-top: 14px; }
+  .title { font-size: 18px; font-weight: 600; }
+  .facts { color: var(--muted); margin: 2px 0 12px; }
+  .views { display: flex; gap: 16px; flex-wrap: wrap; }
+  figure { margin: 0; flex: 1 1 300px; min-width: 260px; }
+  figcaption { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  canvas { width: 100%; height: auto; image-rendering: pixelated; border-radius: 8px;
+           border: 1px solid var(--line); display: block; background: #2b5fab; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; align-items: center; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+           border-radius: 8px; padding: 9px 16px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.remove { background: var(--remove); border-color: var(--remove); color: #fff; font-weight: 600; }
+  button.keep { background: var(--keep); border-color: var(--keep); color: #fff; font-weight: 600; }
+  kbd { font: 12px ui-monospace, Consolas, monospace; border: 1px solid var(--line); border-radius: 4px;
+        padding: 0 5px; margin-left: 4px; background: rgba(127,127,127,.15); }
+  .status { font-weight: 600; margin-left: auto; }
+  .status.remove { color: var(--remove); } .status.keep { color: var(--keep); }
+  .strip { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 14px; }
+  .strip button { padding: 3px 7px; font-size: 12px; min-width: 34px; }
+  .strip .remove { background: var(--remove); color: #fff; border-color: var(--remove); }
+  .strip .keep { background: var(--keep); color: #fff; border-color: var(--keep); }
+  .strip .here { outline: 2px solid var(--accent); outline-offset: 1px; }
+  textarea { width: 100%; min-height: 120px; font: 12px ui-monospace, Consolas, monospace;
+             background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+             border-radius: 8px; padding: 8px; margin-top: 8px; }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sprite hole review, round 2: animation frames</h1>
+  <p class="sub">These regions only show up in some animation frames, so they were not in round 1.
+  Each picture shows one walled-in white region. <b>Remove</b> it if you could see through
+  the sprite there (a gap between limbs, a hole); <b>Keep</b> it if it is meant to be white (an eye, a tongue,
+  a highlight). Blue is the backdrop showing through; the game's real backdrop is whatever the battle uses.</p>
+
+  <div class="bar"><div id="fill"></div></div>
+  <div class="meta"><span id="progress"></span><span id="counts"></span></div>
+
+  <section class="card" id="card">
+    <div class="title" id="title"></div>
+    <div class="facts" id="facts"></div>
+    <div class="views">
+      <figure><figcaption>Now: the region is solid white</figcaption><canvas id="before"></canvas></figure>
+      <figure><figcaption>If removed: the backdrop shows through</figcaption><canvas id="after"></canvas></figure>
+    </div>
+    <div class="actions">
+      <button id="prev">&larr; Back<kbd>&larr;</kbd></button>
+      <button id="remove" class="remove">Remove (it's a hole)<kbd>R</kbd></button>
+      <button id="keep" class="keep">Keep (meant to be white)<kbd>K</kbd></button>
+      <button id="next">Skip &rarr;<kbd>&rarr;</kbd></button>
+      <span class="status" id="status"></span>
+    </div>
+    <div class="strip" id="strip"></div>
+  </section>
+
+  <section class="card">
+    <div class="title">Your decisions</div>
+    <div class="hint">When you have gone through them, press Copy and paste the result into the chat.
+    Your choices are saved in this browser, so you can close the page and come back.</div>
+    <div class="actions"><button id="copy">Copy decisions</button><span id="copied" class="hint"></span></div>
+    <textarea id="out" readonly spellcheck="false"></textarea>
+  </section>
+</main>
+
+<script src="../out/review_data.js"></script>
+<script>
+(function () {
+  "use strict";
+  var DATA = window.REVIEW_DATA || [];
+  var SHADES = ["#ffffff", "#aaaaaa", "#555555", "#000000"];
+  var BACKDROP = "#2b5fab";
+  var RED = "#e53935";
+  var STORE = "sprite-hole-review-v2";   // v2: decisions are keyed by animation frame too
+  var decisions = {};
+  try { decisions = JSON.parse(localStorage.getItem(STORE) || "{}"); } catch (e) { decisions = {}; }
+  var index = 0;
+
+  function $(id) { return document.getElementById(id); }
+  function key(d) { return d.dex + ":" + (d.frame || 0) + ":" + d.x + "," + d.y; }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(decisions)); } catch (e) {} }
+
+  // The white that touches the edge of the pic is transparent in the game already.
+  function edgeBackground(px, w) {
+    var bg = new Uint8Array(px.length), queue = [], head = 0;
+    function visit(x, y) {
+      var i = y * w + x;
+      if (!bg[i] && px.charAt(i) === "0") { bg[i] = 1; queue.push(i); }
+    }
+    for (var k = 0; k < w; k++) { visit(k, 0); visit(k, w - 1); visit(0, k); visit(w - 1, k); }
+    while (head < queue.length) {
+      var i = queue[head++], x = i % w, y = (i - x) / w;
+      if (x > 0) visit(x - 1, y);
+      if (x < w - 1) visit(x + 1, y);
+      if (y > 0) visit(x, y - 1);
+      if (y < w - 1) visit(x, y + 1);
+    }
+    return bg;
+  }
+
+  function draw(canvas, d, mode) {
+    var w = d.w, s = Math.max(4, Math.floor(420 / w));
+    canvas.width = w * s; canvas.height = w * s;
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = BACKDROP; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var bg = d._bg || (d._bg = edgeBackground(d.px, w));
+    var region = d._region || (d._region = (function () {
+      var set = {}; d.cells.forEach(function (c) { set[c] = 1; }); return set;
+    })());
+    for (var i = 0; i < d.px.length; i++) {
+      if (bg[i]) continue;
+      if (region[i] && mode === "after") continue;
+      ctx.fillStyle = region[i] && mode === "before" ? RED : SHADES[+d.px.charAt(i)];
+      ctx.fillRect((i % w) * s, Math.floor(i / w) * s, s, s);
+    }
+  }
+
+  function counts() {
+    var r = 0, k = 0;
+    DATA.forEach(function (d) { var v = decisions[key(d)]; if (v === "remove") r++; else if (v === "keep") k++; });
+    return { remove: r, keep: k, left: DATA.length - r - k };
+  }
+
+  function render() {
+    if (!DATA.length) { $("title").textContent = "No data: run  luajit tools/review_data.lua  first."; return; }
+    var d = DATA[index], c = counts(), v = decisions[key(d)];
+    $("title").textContent = "#" + d.dex + " " + d.name;
+    $("facts").textContent = d.size + " pixels  ·  at x " + d.x + ", y " + d.y + "  ·  shown in animation frame "
+      + (d.frame || 0) + "  ·  same region in frame" + (d.frames.length > 1 ? "s " : " ") + d.frames.join(", ");
+    draw($("before"), d, "before");
+    draw($("after"), d, "after");
+    $("progress").textContent = (index + 1) + " of " + DATA.length;
+    $("counts").textContent = c.remove + " to remove · " + c.keep + " to keep · " + c.left + " left";
+    $("fill").style.width = Math.round(100 * (DATA.length - c.left) / DATA.length) + "%";
+    var st = $("status");
+    st.className = "status " + (v || "");
+    st.textContent = v === "remove" ? "Marked: remove" : v === "keep" ? "Marked: keep" : "";
+    var strip = $("strip");
+    strip.textContent = "";
+    DATA.forEach(function (x, i) {
+      var b = document.createElement("button");
+      b.textContent = x.dex;
+      b.title = "#" + x.dex + " " + x.name + " (" + x.size + " px)";
+      b.className = (decisions[key(x)] || "") + (i === index ? " here" : "");
+      b.onclick = function () { index = i; render(); };
+      strip.appendChild(b);
+    });
+    var out = { remove: [], keep: [], undecided: c.left };
+    DATA.forEach(function (x) {
+      var dec = decisions[key(x)], row = { dex: x.dex, name: x.name, frame: x.frame || 0, x: x.x, y: x.y, size: x.size };
+      if (dec === "remove") out.remove.push(row); else if (dec === "keep") out.keep.push(row);
+    });
+    $("out").value = JSON.stringify(out, null, 1);
+  }
+
+  function decide(v) {
+    decisions[key(DATA[index])] = v; save();
+    if (index < DATA.length - 1) index++;
+    render();
+  }
+  function go(n) { index = Math.max(0, Math.min(DATA.length - 1, index + n)); render(); }
+
+  $("remove").onclick = function () { decide("remove"); };
+  $("keep").onclick = function () { decide("keep"); };
+  $("prev").onclick = function () { go(-1); };
+  $("next").onclick = function () { go(1); };
+  $("copy").onclick = function () {
+    var box = $("out");
+    box.select();
+    var done = function () { $("copied").textContent = "Copied. Paste it into the chat."; };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(box.value).then(done, function () {
+        document.execCommand("copy"); done();
+      });
+    } else { document.execCommand("copy"); done(); }
+  };
+  document.addEventListener("keydown", function (e) {
+    if (e.target && e.target.tagName === "TEXTAREA") return;
+    var k = e.key.toLowerCase();
+    if (k === "r") decide("remove");
+    else if (k === "k") decide("keep");
+    else if (e.key === "ArrowLeft") go(-1);
+    else if (e.key === "ArrowRight") go(1);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
