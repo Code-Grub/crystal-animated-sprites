@@ -1243,6 +1243,8 @@ git commit -m "Add dump tool and confirm tile order against real output"
 
 ---
 
+**Verdict (recorded 2026-09-30):** front order `columns` and back order `columns` are both correct; `Anim.ORDER` and `Anim.ORDER_BACK` stay as shipped. Viewed Pikachu (5 tiles, frames 0-4 and back), Charizard (7 tiles, 3 frames) and Mewtwo (7 tiles, 5 frames). Animation frames show clean eye/mouth/body/wing movement with no torn tiles. Mewtwo's last two frames are lighter-shaded but intact (Crystal's flicker on that species). Our PNG also decodes in PIL as mode L with exactly the shades 0, 85, 170, 255, so the encoder is valid beyond our own parser.
+
 ### Task 8: Cache and background decode job
 
 **Files:**
