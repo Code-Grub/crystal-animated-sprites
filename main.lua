@@ -10,8 +10,8 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest", "status", "screenanim", "palette", "specks", "specks_back", "edits" }
-  local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "palette", "specks", "specks_back", "edits" }
+                     "playback", "swap", "ingest", "status", "screenanim", "palette", "icons", "iconshim", "specks", "specks_back", "edits" }
+  local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "palette", "icons", "specks", "specks_back", "edits" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
   -- load, and each lib chunk receives `need` to reach the others.
@@ -37,6 +37,7 @@ return function(mod)
   local Playback, Swap, Ingest = need("playback"), need("swap"), need("ingest")
   local Status = need("status")
   local ScreenAnim = need("screenanim")
+  local IconShim = need("iconshim")
 
   local romBytes, readErr = mod.imports:read("crystal_rom", 0, 2097152)
   if not romBytes then
@@ -326,6 +327,41 @@ return function(mod)
     screenAnim:tick(top, (love and love.timer) and love.timer.getTime() or 0)
     if top then
       dexNote = tag .. " " .. (top.sprite and "ON" or "NO IMG") .. " " .. (screenAnim.shown and "SHOWN" or "NONE")
+    end
+  end
+
+  -- Party and box icons.  PartyMenu.drawIcon, which the party menu and Bill's PC
+  -- Plus both call, draws a species entry of the form { image, trueColor }
+  -- whole and with its two frames.  For a species whose Crystal icon is built,
+  -- it is handed a view of the game whose icon table has that entry.
+  local iconShims, iconEntries = IconShim.new(), {}
+  local function iconEntry(dex)
+    local meta = ready[dex] and not failed[dex] and cache:meta(dex)
+    if not (meta and meta.icon) then return nil end
+    -- the grey sheet: the engine colours it with the game's palettes, the way it
+    -- does its own icons
+    local path = cache:iconPath(meta.icon)
+    local entry = iconEntries[path]
+    if not entry then
+      entry = { image = path, trueColor = false }
+      iconEntries[path] = entry
+    end
+    return entry
+  end
+
+  local okParty, PartyMenu = pcall(require, "src.ui.PartyMenu")
+  if okParty and type(PartyMenu) == "table" and type(PartyMenu.drawIcon) == "function" then
+    -- a reload wraps the engine's own function again, not the last wrapper
+    local original = PartyMenu.__casDrawIcon or PartyMenu.drawIcon
+    PartyMenu.__casDrawIcon = original
+    PartyMenu.drawIcon = function(game, mon, ...)
+      if mon and mod.options:get("party_icons") ~= "game" then
+        local dex = dexOf(game and game.data, mon.species)
+        local entry = dex and iconEntry(dex)
+        local view = entry and iconShims:view(game, mon.species, entry)
+        if view then return original(view, mon, ...) end
+      end
+      return original(game, mon, ...)
     end
   end
 

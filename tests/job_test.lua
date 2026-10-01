@@ -21,7 +21,7 @@ end
 
 local function libs()
   local out = {}
-  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "palette", "specks", "specks_back", "edits" }) do
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "palette", "icons", "specks", "specks_back", "edits" }) do
     out[n] = readFile("lib/" .. n .. ".lua")
   end
   return out
@@ -138,6 +138,33 @@ if H.rom() then
         end
       end
       H.eq(n >= 3, true, label .. " uses at least three palette colours")
+    end
+  end)
+
+  -- The party icon: one grey sheet per icon shape, in the shades Red, Blue and
+  -- Yellow draw object colours with, so the engine's own palettes colour it.
+  H.test("job: the party icon sheet has the right shape, transparency and shades", function()
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 25, last = 25 })
+    local icon = assert(r.species[25].icon, "icon")
+    H.eq(icon.id, 4, "Pikachu's icon shape")
+    local Rom, Palette, Icons = H.need("rom"), H.need("palette"), H.need("icons")
+    local rom = Rom.new(H.rom())
+    local px = Icons.pixels(rom, 4)
+    local g = rawScanlines(icon.gray)
+    H.eq(icon.gray:byte(26), 4, "grey sheet is grey+alpha")
+    H.eq(icon.color, nil, "no separate colour sheet")
+    H.eq(icon.gray:byte(20), 16, "sheet is 16 wide")
+    H.eq(icon.gray:byte(24), 32, "sheet is 32 tall")
+    for y = 0, 31 do
+      for x = 0, 15 do
+        local v = px[y * 16 + x + 1]
+        local ga = g:byte(y * (1 + 2 * 16) + 1 + 2 * x + 2)
+        H.eq(ga, v == 0 and 0 or 255, "grey alpha at " .. x .. "," .. y)
+        if v ~= 0 then
+          local want = ({ 255, 255, 170, 0 })[v + 1]
+          H.eq(g:byte(y * (1 + 2 * 16) + 1 + 2 * x + 1), want, "grey shade at " .. x .. "," .. y)
+        end
+      end
     end
   end)
 

@@ -2,7 +2,7 @@ package.path = "./?.lua;" .. package.path
 local H = require("tests.harness")
 local files = {
   "lz_test", "rom_test", "pic_test", "png_test",
-  "anim_test", "cache_test", "playback_test", "job_test", "swap_test", "ingest_test", "status_test", "gap_test", "screenanim_test", "palette_test", "rgba_test", "cache_color_test",
+  "anim_test", "cache_test", "playback_test", "job_test", "swap_test", "ingest_test", "status_test", "gap_test", "screenanim_test", "palette_test", "rgba_test", "cache_color_test", "icons_test", "cache_icon_test", "iconshim_test",
 }
 for _, name in ipairs(files) do
   local path = "tests/" .. name .. ".lua"

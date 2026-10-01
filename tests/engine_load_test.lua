@@ -43,7 +43,7 @@ local Rom, Cache = need("rom"), need("cache")
 
 local function decodeBatch(first, last)
   local libs = {}
-  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "palette", "specks", "specks_back", "edits" }) do
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "palette", "icons", "specks", "specks_back", "edits" }) do
     libs[n] = readFile(MOD .. "/lib/" .. n .. ".lua")
   end
   local chunk = assert(loadfile(MOD .. "/jobs/decode.lua"))
@@ -117,6 +117,7 @@ do
   local fs = makeFs()
   seed(fs, realStamp, 3, 3)
   local run, Data = load(fs)
+  run.loader.modOptions[ID] = { sprite_colors = "game" } -- this section checks the grey copies
   eq(run.mod and run.mod.state, "loaded", "the mod loads in the real loader")
   eq(#run.errors, 0, "no load errors")
 
@@ -149,6 +150,8 @@ do
     "the mirrored resting frame is registered at 1x")
   check(require("src.mods.Runtime").wantsHook("core.update"),
     "decode results are collected every frame, not only inside a battle")
+  check(require("src.ui.PartyMenu").__casDrawIcon ~= nil,
+    "the party menu icon wrapper is installed")
   run.release()
 end
 
@@ -163,7 +166,13 @@ do
     local path, trueColor = Sprites.path(Data, species, side, { kind = kind or "battle" })
     return path, trueColor
   end
+  -- no option set: Crystal colours are the default
   local path, tc = lookup("FIXMON_C", "front")
+  eq(path, prefix .. "/front/003/0c.png", "by default the colour frame is served")
+  eq(tc, true, "and flagged true colour")
+
+  run.loader.modOptions[ID] = { sprite_colors = "game" }
+  path, tc = lookup("FIXMON_C", "front")
   eq(path, prefix .. "/front/003/0.png", "GAME colours serve the grey frame")
   eq(tc, false, "and are not flagged true colour")
 

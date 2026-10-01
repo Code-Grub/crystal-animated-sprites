@@ -12,7 +12,7 @@ local function need(name)
 end
 
 local Rom, Anim, PNG, Pic = need("rom"), need("anim"), need("png"), need("pic")
-local Palette = need("palette")
+local Palette, Icons = need("palette"), need("icons")
 local Specks, SpecksBack, Edits = need("specks"), need("specks_back"), need("edits")
 local SHADES = { 255, 170, 85, 0 }
 local rom = Rom.new(arg.rom)
@@ -45,7 +45,15 @@ for dex = arg.first, arg.last do
       colorFlipped[index] = encodeColor(Pic.mirror(px, r.width), Pic.mirror(alpha, r.width), r.width)
     end
     local backAlpha = Pic.applyEdits(r.back, Pic.matte(r.back, 48, SpecksBack[dex]), 48, Edits.back[dex])
+    -- the party icon: a grey sheet for the shape
+    local iconId = Icons.idFor(rom, dex)
+    local iconPixels = Icons.pixels(rom, iconId)
+    local iconAlpha = Icons.alpha(iconPixels)
     return {
+      icon = {
+        id = iconId,
+        gray = PNG.encodeGrayAlpha(iconPixels, iconAlpha, 16, 32, Icons.SHADES),
+      },
       size = r.size,
       timeline = r.timeline,
       frames = frames,

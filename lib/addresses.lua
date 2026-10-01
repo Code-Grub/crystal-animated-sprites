@@ -11,6 +11,12 @@ return {
   -- placeholder, so species N is at addr + 8 * N.  A sprite is drawn with
   -- white, colour one, colour two, black.
   pokemonPalettes = { bank = 0x02, addr = 0x68CE },
+  -- Party menu icons.  menuIcons is one icon id per species (251 bytes) and the
+  -- pointer table, one dw per icon id, follows it directly; each icon is eight
+  -- 2bpp tiles (two 16x16 frames) in the same bank.  There are 38 shared shapes.
+  menuIcons       = { bank = 0x23, addr = 0x6AC4 },
+  menuIconSpecies = 251,
+  iconCount       = 38,
   picBankBias     = 0x36, -- pic bank bytes are stored minus this
   kantoFramesBank = 0x35, -- frame records for species 1-151
   baseDataDimensionsOffset = 0x11,

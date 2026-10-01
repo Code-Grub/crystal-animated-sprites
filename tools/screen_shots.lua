@@ -17,13 +17,17 @@ return function(game)
   local only = os.getenv("CAS_SCREENS")
   local Pokemon = require("src.pokemon.Pokemon")
 
-  game.save.party = { Pokemon.new(game.data, SPECIES, 20) }
+  -- CAS_PARTY="PIKACHU,PIDGEY,..." fills the party for the party menu shot
+  game.save.party = {}
+  for name in (os.getenv("CAS_PARTY") or SPECIES):gmatch("[^,]+") do
+    game.save.party[#game.save.party + 1] = Pokemon.new(game.data, name, 20)
+  end
   U.teleport(game, "ROUTE_1", 5, 5, "down")
   U.wait(10)
   if not game.overworld then U.log("FAIL no overworld") return end
 
   -- CAS_OPTS="key=value,key=value" sets this mod's options for the run, e.g.
-  -- CAS_OPTS=sprite_colors=crystal.  They are saved, so reset them afterwards.
+  -- CAS_OPTS=sprite_colors=crystal.  They are saved and read when the mod loads, so they apply from the NEXT run; reset them afterwards.
   local opts = os.getenv("CAS_OPTS")
   if opts then
     local values = {}
@@ -121,6 +125,7 @@ return function(game)
   end
 
   local mon = game.save.party[1]
+  show("party", function() return require("src.ui.PartyMenu").new(game, {}) end, 120)
   show("summary", function() return require("src.ui.SummaryMenu").new(game, mon) end, 120)
   show("dex", function()
     return require("src.ui.DexEntryMenu").new(game, { species = SPECIES, forceOwned = true }, function() end)

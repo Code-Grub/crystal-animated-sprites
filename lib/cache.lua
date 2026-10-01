@@ -27,6 +27,12 @@ function Cache:framePath(dex, index, mirrored, color)
     index, mirrored and "m" or "", color and "c" or "")
 end
 
+-- The party icon: one grey sheet per icon shape, shared by many species.  The
+-- engine colours it with the game's own palettes.
+function Cache:iconPath(id)
+  return ("mod_cache/%s/%s/icons/%02d.png"):format(self.modId, self.stamp, id)
+end
+
 function Cache:backPath(dex, color)
   return ("mod_cache/%s/%s/back/%03d%s.png"):format(self.modId, self.stamp, dex,
     color and "c" or "")
@@ -35,14 +41,17 @@ end
 local function encodeMeta(result, frameIndexes, colors)
   local steps = {}
   for _, s in ipairs(result.timeline) do steps[#steps + 1] = s.frame .. ":" .. s.ticks end
-  return ("size=%d\nframes=%s\ntimeline=%s\ncolors=%d\n"):format(result.size,
+  local text = ("size=%d\nframes=%s\ntimeline=%s\ncolors=%d\n"):format(result.size,
     table.concat(frameIndexes, ","), table.concat(steps, ","), colors and 1 or 0)
+  if result.icon then text = text .. ("icon=%d\n"):format(result.icon.id) end
+  return text
 end
 
 local function decodeMeta(text)
   local size = tonumber(text:match("size=(%d+)"))
   if not size then return nil end
-  local meta = { size = size, frames = {}, timeline = {}, colors = text:match("colors=1") ~= nil }
+  local meta = { size = size, frames = {}, timeline = {}, colors = text:match("colors=1") ~= nil,
+    icon = tonumber(text:match("icon=(%d+)")) }
   for n in (text:match("frames=([%d,]*)") or ""):gmatch("%d+") do
     meta.frames[tonumber(n)] = true
   end
@@ -83,6 +92,10 @@ function Cache:put(dex, result)
     ok, err = self.store.write(self:key(("back/%03dc.png"):format(dex)), result.colorBack)
     if not ok then return false, tostring(err) end
   end
+  if result.icon then
+    ok, err = self.store.write(self:key(("icons/%02d.png"):format(result.icon.id)), result.icon.gray)
+    if not ok then return false, tostring(err) end
+  end
   ok, err = self.store.write(self:key(("meta/%03d"):format(dex)), encodeMeta(result, indexes, colors))
   if not ok then return false, tostring(err) end
   self.memo[dex] = nil
@@ -115,6 +128,9 @@ function Cache:complete(dex)
     end
   end
   if meta.colors and not present(("back/%03dc.png"):format(dex)) then return false end
+  if meta.icon then
+    if not present(("icons/%02d.png"):format(meta.icon)) then return false end
+  end
   return true
 end
 

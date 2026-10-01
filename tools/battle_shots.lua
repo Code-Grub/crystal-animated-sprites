@@ -37,7 +37,7 @@ return function(game)
   if os.getenv("CAS_BG") then game.save.options.battleBg = os.getenv("CAS_BG") end
 
   -- CAS_OPTS="key=value,key=value" sets this mod's options for the run, e.g.
-  -- CAS_OPTS=sprite_colors=crystal.  They are saved, so reset them afterwards.
+  -- CAS_OPTS=sprite_colors=crystal.  They are saved and read when the mod loads, so they apply from the NEXT run; reset them afterwards.
   local opts = os.getenv("CAS_OPTS")
   if opts then
     local values = {}

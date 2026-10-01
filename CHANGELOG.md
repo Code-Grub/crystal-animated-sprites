@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+### Added
+- A `SPRITE COLORS` option. `CRYSTAL` (the default) draws every Pokemon in the two colours Crystal gave it, read from the ROM, on every screen this mod replaces. `GAME` keeps the colours of the game you are playing. The first launch after updating rebuilds the sprites, and the cache is larger because it holds both versions.
+- Crystal's small party icons in the party menu and the PC boxes, with their two animation frames, and a `PARTY ICONS` option (`CRYSTAL` by default, `GAME` for the original icons). Bill's PC Plus picks the icons up through the engine's own icon drawing, so it needs no change. The icons are drawn in the game's colours.
+- `tools/screen_shots.lua` can capture the party menu (`CAS_PARTY`), and both capture scripts take `CAS_OPTS`, which sets this mod's options from the next run.
+
 ## 0.3.0
 
 ### Added

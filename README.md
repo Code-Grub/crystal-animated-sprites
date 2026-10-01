@@ -23,15 +23,21 @@ part of the mod.
   evolution screen, the Hall of Fame, the title screen, Prof. Oak's intro,
   trades and the credits. The Pokedex entry and the status screen play the
   animation; the other screens show the resting frame.
+- Crystal's small party icons in the party menu and the PC boxes, with their
+  two animation frames. Bill's PC Plus gets them too, with no changes on its
+  side. They are drawn in the game's own colours.
 - Options:
+  - `SPRITE COLORS`. `CRYSTAL` (default) draws each Pokemon in the colours
+    Crystal gave it. `GAME` draws the sprites in the colours of the game you
+    are playing, so Red, Blue and Yellow keep their own palettes.
+  - `PARTY ICONS`. `CRYSTAL` (default) uses Crystal's icons. `GAME` keeps the
+    icons of the game you are playing.
   - `BACK SPRITES`, for your own Pokemon. `CRYSTAL` (default) is Crystal's back
     sprite. `ANIMATED FRONT` is the animated front sprite, mirrored.
   - `DIAGNOSTICS` (off by default) draws a few lines over the battle screen
     with the mod version, which cache it is using, how many species are ready,
     and whether each sprite comes from this mod. It is for bug reports on
     devices where the save folder cannot be opened, such as Android.
-- Red, Blue and Yellow keep their own colours and palettes. Only the pictures
-  change.
 - The sprites have transparent backgrounds, so they work with mods that replace
   the battle background. Gaps that are really see-through, such as between a
   bird's feet or inside a hood, are transparent too, and many sprites were
@@ -53,9 +59,11 @@ part of the mod.
   itself plays it once when a Pokemon appears.
 - After a Pokemon uses Transform, or after a Silph Scope reveals the Pokemon
   Tower ghost, that sprite holds Crystal's resting pose instead of animating.
+- Party icons are drawn in the game's colours. Crystal colours its icons with
+  a separate set of palettes that the engine does not apply to icons.
 - Only front pictures are replaced outside battle. Back pictures on other
-  screens (the Hall of Fame's back pass), trainer pictures and party icons keep
-  their usual art, because those screens are laid out for the original sizes.
+  screens (the Hall of Fame's back pass) and trainer pictures keep their
+  usual art, because those screens are laid out for the original sizes.
 - Sprites are rebuilt on their own if you swap the ROM for a different dump.
 
 ## 3D battle mods
