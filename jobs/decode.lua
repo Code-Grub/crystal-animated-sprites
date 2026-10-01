@@ -23,7 +23,7 @@ for dex = arg.first, arg.last do
     -- Every pic is matted: the colour-0 background around the sprite becomes
     -- transparent, so it can sit on any backdrop instead of a white square.
     local function encode(px, alpha, width)
-      return PNG.encodeGrayAlpha(px, alpha, width, width, SHADES)
+      return PNG.encodeGrayAlpha(px, Pic.gaps(alpha, width), width, width, SHADES)
     end
     local frames, flipped = {}, {}
     for index, px in pairs(r.frames) do

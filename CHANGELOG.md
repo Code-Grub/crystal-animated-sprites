@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+### Fixed
+- Gaps in the sprites, such as the space between Pidgey's feet or between a limb and the body, were painted white again by the 3D battle mods (Potato Voxel and Battle Art Voxel), which refill any see-through area they cannot trace back to the outside. Gaps that were meant to be see-through are now tagged with an alpha of 1/255, which is invisible when drawn. A voxel mod that understands the tag leaves them clear. Until those mods update, nothing changes for you: they keep filling the gaps exactly as before, and the 2D battle screen is unaffected.
+
 ## 0.1.3
 
 ### Added

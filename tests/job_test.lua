@@ -95,9 +95,25 @@ end
 
 if H.rom() then
   -- alpha byte of pixel (x, y) in a width-w grayscale+alpha PNG
-  local function alphaAt(png, w, x, y)
+  local function rawAlphaAt(png, w, x, y)
     return rawScanlines(png):byte(y * (1 + 2 * w) + 1 + 2 * x + 2)
   end
+  -- what a viewer sees: a deliberate gap is written as 1/255, which reads as
+  -- transparent here
+  local function alphaAt(png, w, x, y)
+    local a = rawAlphaAt(png, w, x, y)
+    return a <= 1 and 0 or a
+  end
+
+  -- Pidgey's feet leave a gap open only at the bottom edge.  A 3D battle mod
+  -- would repaint it as white, so it has to carry the gap tag.
+  H.test("job: a gap between Pidgey's feet is tagged, the background is not", function()
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 16, last = 16 })
+    local png = r.species[16].frames[0]
+    H.eq(rawAlphaAt(png, 40, 22, 34), 1, "between the feet")
+    H.eq(rawAlphaAt(png, 40, 0, 0), 0, "plain background")
+    H.eq(rawAlphaAt(png, 40, 17, 34), 255, "the leg itself")
+  end)
 
   -- Hand edits (lib/edits.lua) are the final word: they override the automatic
   -- review decisions the tests below pin, so those checks skip any pixel a hand

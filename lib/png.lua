@@ -61,7 +61,8 @@ local function storedZlib(raw)
 end
 
 -- Grayscale plus alpha (colour type 4): a gray byte and an alpha byte per
--- pixel.  alpha[i] is 0 for transparent, anything else for opaque.
+-- pixel.  alpha[i] is 0 for transparent, 2 for a deliberate gap (written as
+-- 1/255, see Pic.gaps), anything else for opaque.
 function PNG.encodeGrayAlpha(pixels, alpha, width, height, shades)
   local rows = {}
   for y = 0, height - 1 do
@@ -69,7 +70,7 @@ function PNG.encodeGrayAlpha(pixels, alpha, width, height, shades)
     local base = y * width
     for x = 1, width do
       bytes[#bytes + 1] = string.char(shades[pixels[base + x] + 1],
-        alpha[base + x] == 0 and 0 or 255)
+        alpha[base + x] == 0 and 0 or (alpha[base + x] == 2 and 1 or 255))
     end
     rows[#rows + 1] = table.concat(bytes)
   end

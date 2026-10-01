@@ -124,6 +124,56 @@ function Pic.applyEdits(pixels, alpha, width, runs)
   return alpha
 end
 
+-- Marks the deliberate gaps.  A battle mod that stands the sprite in a 3D scene
+-- repaints any transparent pixel the background cannot reach as opaque white,
+-- because on the original art that is a belly or an eye.  Here those pixels
+-- are gaps on purpose, so this copy of alpha tags them with level 2, which
+-- PNG.encodeGrayAlpha writes as 1/255: still invisible, but not zero, so a
+-- mod that respects the tag leaves them be and one that does not behaves as
+-- before.  A gap is a transparent pixel that cannot reach the left, right or
+-- top edge through transparent pixels, which also covers a gap that is open
+-- only at the bottom, like the space between a bird's feet.
+function Pic.gaps(alpha, width)
+  local height = #alpha / width
+  local out, outside, stack = {}, {}, {}
+  for i = 1, #alpha do out[i] = alpha[i] end
+  -- the flood stays inside the bounding box of the opaque pixels, the way the
+  -- battle mods' own paper rule does, so the empty frame under a figure's
+  -- feet cannot count as a way out for the gap between them
+  local x0, y0, x1, y1 = width, height, -1, -1
+  for i = 1, #alpha do
+    if alpha[i] ~= 0 then
+      local x, y = (i - 1) % width, math.floor((i - 1) / width)
+      if x < x0 then x0 = x end
+      if x > x1 then x1 = x end
+      if y < y0 then y0 = y end
+      if y > y1 then y1 = y end
+    end
+  end
+  if x1 < 0 then return out end
+  local function push(x, y)
+    if x < x0 or y < y0 or x > x1 or y > y1 then return end
+    local i = y * width + x + 1
+    if outside[i] or alpha[i] ~= 0 then return end
+    outside[i] = true
+    stack[#stack + 1] = i
+  end
+  for x = x0, x1 do push(x, y0) end
+  for y = y0, y1 do push(x0, y); push(x1, y) end
+  while #stack > 0 do
+    local i = table.remove(stack)
+    local x, y = (i - 1) % width, math.floor((i - 1) / width)
+    push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1)
+  end
+  for y = y0, y1 do
+    for x = x0, x1 do
+      local i = y * width + x + 1
+      if alpha[i] == 0 and not outside[i] then out[i] = 2 end
+    end
+  end
+  return out
+end
+
 function Pic.mirror(pixels, width)
   local out, height = {}, #pixels / width
   for y = 0, height - 1 do
