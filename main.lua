@@ -247,7 +247,11 @@ return function(mod)
       pollJobs()
       local dex = dexOf(ctx.data, ctx.species)
       local path, color
-      if dex then path, color = resolve(dex, "front", nil) end
+      -- A screen that keeps its own clock (Bill's PC Plus' side panel) says how
+      -- long the picture has been up and gets that moment of the animation;
+      -- everyone else gets the resting frame.
+      local seconds = ctx.kind == "summary" and tonumber(ctx.seconds) or nil
+      if dex then path, color = resolve(dex, "front", seconds) end
       if path then
         if color then ctx.trueColor = true end
         return path

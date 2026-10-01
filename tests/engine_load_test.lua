@@ -137,6 +137,24 @@ do
     eq(pathFor(Data, "FIXMON_C", "front", kind), prefix .. "/front/003/0.png",
       kind .. " screen serves the resting Crystal frame")
   end
+  -- a screen with its own clock (Bill's PC Plus' panel) asks Sprites.pic with
+  -- ctx.seconds and gets the frame for that moment
+  local function at(species, kind, seconds)
+    local def = Data.pokemon[species]
+    return (Sprites.pic(def.spriteFront, { species = species, side = "front",
+      kind = kind, data = Data, seconds = seconds }))
+  end
+  check(at("FIXMON_C", "summary", 0):find(prefix .. "/front/003/", 1, true) == 1,
+    "a summary lookup with a clock serves a cached frame of the species")
+  local moved
+  for s = 0.05, 6, 0.05 do
+    if at("FIXMON_C", "summary", s) ~= prefix .. "/front/003/0.png" then moved = true break end
+  end
+  check(moved, "a summary lookup with a clock reaches a frame other than the resting one")
+  eq(at("FIXMON_C", "dex", 1.0), prefix .. "/front/003/0.png",
+    "only the summary kind takes a clock; other screens stay on the resting frame")
+  eq(at("FIXMON_A", "summary", 1.0), "tests/fixture_data/assets/fixmon_a_front.png",
+    "an uncached species keeps the engine's art with a clock too")
   eq(pathFor(Data, "FIXMON_A", "front", "summary"), "tests/fixture_data/assets/fixmon_a_front.png",
     "an uncached species keeps the engine's art on other screens too")
   eq(pathFor(Data, "FIXMON_C", "front", "online"), "tests/fixture_data/assets/fixmon_c_front.png",
