@@ -99,6 +99,22 @@ if H.rom() then
     return rawScanlines(png):byte(y * (1 + 2 * w) + 1 + 2 * x + 2)
   end
 
+  -- Hand edits (lib/edits.lua) are the final word: they override the automatic
+  -- review decisions the tests below pin, so those checks skip any pixel a hand
+  -- edit covers.  Everything else still has to match.
+  local handEdits = dofile("lib/edits.lua")
+  local function inRuns(runs, x, y)
+    for _, r in ipairs(runs or {}) do
+      if r[1] == y and x >= r[2] and x <= r[3] then return true end
+    end
+    return false
+  end
+  local function handFront(dex, frame, x, y)
+    local sc = handEdits.front[dex]
+    return sc ~= nil and (inRuns(sc.all, x, y) or inRuns(sc[frame], x, y))
+  end
+  local function handBack(dex, x, y) return inRuns(handEdits.back[dex], x, y) end
+
   H.test("job: every region reviewed by hand is cleared or kept as decided", function()
     local decisions = dofile("tests/review_decisions.lua")
     local r = runJob({ rom = H.rom(), libs = libs(), first = 1, last = 151 })
@@ -108,10 +124,14 @@ if H.rom() then
       return alphaAt(sp.frames[d[2]], sp.size * 8, d[3], d[4])
     end
     for _, d in ipairs(decisions.remove) do
-      H.eq(alpha(d), 0, ("dex %d frame %d (%d,%d) is a hole and must be transparent"):format(d[1], d[2], d[3], d[4]))
+      if not handFront(d[1], d[2], d[3], d[4]) then
+        H.eq(alpha(d), 0, ("dex %d frame %d (%d,%d) is a hole and must be transparent"):format(d[1], d[2], d[3], d[4]))
+      end
     end
     for _, d in ipairs(decisions.keep) do
-      H.eq(alpha(d), 255, ("dex %d frame %d (%d,%d) is meant to be white and must stay"):format(d[1], d[2], d[3], d[4]))
+      if not handFront(d[1], d[2], d[3], d[4]) then
+        H.eq(alpha(d), 255, ("dex %d frame %d (%d,%d) is meant to be white and must stay"):format(d[1], d[2], d[3], d[4]))
+      end
     end
   end)
 
@@ -123,12 +143,16 @@ if H.rom() then
       return alphaAt(sp.frames[frame], sp.size * 8, x, y)
     end
     for _, e in ipairs(expect.remove) do
-      H.eq(alpha(e[1], e[2], e[3], e[4]), 0,
-        ("dex %d frame %d (%d,%d) is the same hole in another pose"):format(e[1], e[2], e[3], e[4]))
+      if not handFront(e[1], e[2], e[3], e[4]) then
+        H.eq(alpha(e[1], e[2], e[3], e[4]), 0,
+          ("dex %d frame %d (%d,%d) is the same hole in another pose"):format(e[1], e[2], e[3], e[4]))
+      end
     end
     for _, e in ipairs(expect.keep) do
-      H.eq(alpha(e[1], e[2], e[3], e[4]), 255,
-        ("dex %d frame %d (%d,%d) is a kept region and must stay"):format(e[1], e[2], e[3], e[4]))
+      if not handFront(e[1], e[2], e[3], e[4]) then
+        H.eq(alpha(e[1], e[2], e[3], e[4]), 255,
+          ("dex %d frame %d (%d,%d) is a kept region and must stay"):format(e[1], e[2], e[3], e[4]))
+      end
     end
   end)
 
@@ -137,12 +161,16 @@ if H.rom() then
     local r = runJob({ rom = H.rom(), libs = libs(), first = 1, last = 151 })
     H.eq(next(r.errors), nil, "no species failed")
     for _, d in ipairs(decisions.remove) do
-      H.eq(alphaAt(r.species[d[1]].back, 48, d[3], d[4]), 0,
-        ("dex %d back (%d,%d) is a hole and must be transparent"):format(d[1], d[3], d[4]))
+      if not handBack(d[1], d[3], d[4]) then
+        H.eq(alphaAt(r.species[d[1]].back, 48, d[3], d[4]), 0,
+          ("dex %d back (%d,%d) is a hole and must be transparent"):format(d[1], d[3], d[4]))
+      end
     end
     for _, d in ipairs(decisions.keep) do
-      H.eq(alphaAt(r.species[d[1]].back, 48, d[3], d[4]), 255,
-        ("dex %d back (%d,%d) is meant to be white and must stay"):format(d[1], d[3], d[4]))
+      if not handBack(d[1], d[3], d[4]) then
+        H.eq(alphaAt(r.species[d[1]].back, 48, d[3], d[4]), 255,
+          ("dex %d back (%d,%d) is meant to be white and must stay"):format(d[1], d[3], d[4]))
+      end
     end
   end)
 
