@@ -10,7 +10,7 @@ the download. The animation below is a capture of the running game and is not
 part of the mod.
 
 <p align="center">
-  <img src="images/battle.gif" alt="Charizard and Mewtwo each playing Crystal's animation as they attack in a Pokemon Red battle" width="480">
+  <img src="images/animated-battle.gif" alt="Charizard and Mewtwo each playing Crystal's animation as they attack in a Pokemon Red battle" width="480">
 </p>
 
 ## What you get
