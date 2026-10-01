@@ -9,6 +9,15 @@ return {
     default = "crystal",
     choices = { { "CRYSTAL", "crystal" }, { "ANIMATED FRONT", "front" } },
   },
+  -- GAME draws the sprites in the colours of the game you are playing.
+  -- CRYSTAL draws each Pokemon in the colours Crystal gave it.
+  {
+    key = "sprite_colors",
+    type = "choice",
+    label = "SPRITE COLORS",
+    default = "game",
+    choices = { { "GAME", "game" }, { "CRYSTAL", "crystal" } },
+  },
   -- Draws the cache and job state over the battle, for bug reports on devices
   -- whose save folder cannot be opened.
   {

@@ -36,6 +36,22 @@ return function(game)
   -- override the saved option.
   if os.getenv("CAS_BG") then game.save.options.battleBg = os.getenv("CAS_BG") end
 
+  -- CAS_OPTS="key=value,key=value" sets this mod's options for the run, e.g.
+  -- CAS_OPTS=sprite_colors=crystal.  They are saved, so reset them afterwards.
+  local opts = os.getenv("CAS_OPTS")
+  if opts then
+    local values = {}
+    for pair in opts:gmatch("[^,]+") do
+      local k, v = pair:match("^([%w_]+)=(.+)$")
+      if k then values[k] = v end
+    end
+    require("src.mods.LauncherMods").setModOptions("crystal_animated_sprites", values)
+    game.save.options.modOptions = game.save.options.modOptions or {}
+    local bucket = game.save.options.modOptions.crystal_animated_sprites or {}
+    for k, v in pairs(values) do bucket[k] = v end
+    game.save.options.modOptions.crystal_animated_sprites = bucket
+  end
+
   -- CAS_DIAG=1 turns the DIAGNOSTICS readout on for this run (and back off
   -- after), so it can be photographed.
   local diag = os.getenv("CAS_DIAG")

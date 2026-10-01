@@ -35,8 +35,8 @@ H.test("cache: the format moved past the opaque-background caches", function()
   -- that version must get a fresh decode, which a new stamp forces.
   -- 5 holds the reviewed front and back holes (unreleased).  Caches built before the hand
   -- edits were applied lack them, so the format must have moved on.
-  H.eq(Cache.FORMAT >= 9, true, "FORMAT")
-  H.eq(Cache.stamp({ u8 = function() return 0 end }):sub(1, 3) ~= "f8-", true)
+  H.eq(Cache.FORMAT >= 10, true, "FORMAT")
+  H.eq(Cache.stamp({ u8 = function() return 0 end }):sub(1, 3) ~= "f9-", true)
 end)
 
 H.test("cache: fresh store is not valid until begun", function()

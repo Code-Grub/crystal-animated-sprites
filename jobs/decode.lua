@@ -12,6 +12,7 @@ local function need(name)
 end
 
 local Rom, Anim, PNG, Pic = need("rom"), need("anim"), need("png"), need("pic")
+local Palette = need("palette")
 local Specks, SpecksBack, Edits = need("specks"), need("specks_back"), need("edits")
 local SHADES = { 255, 170, 85, 0 }
 local rom = Rom.new(arg.rom)
@@ -25,7 +26,12 @@ for dex = arg.first, arg.last do
     local function encode(px, alpha, width)
       return PNG.encodeGrayAlpha(px, Pic.gaps(alpha, width), width, width, SHADES)
     end
-    local frames, flipped = {}, {}
+    -- the same picture again in Crystal's own colours for this species
+    local colors = Palette.colors(rom, dex)
+    local function encodeColor(px, alpha, width)
+      return PNG.encodeRGBA(px, Pic.gaps(alpha, width), width, width, colors)
+    end
+    local frames, flipped, colorFrames, colorFlipped = {}, {}, {}, {}
     for index, px in pairs(r.frames) do
       local alpha = Pic.matte(px, r.width, Specks[dex])
       local hand = Edits.front[dex]
@@ -35,13 +41,19 @@ for dex = arg.first, arg.last do
       end
       frames[index] = encode(px, alpha, r.width)
       flipped[index] = encode(Pic.mirror(px, r.width), Pic.mirror(alpha, r.width), r.width)
+      colorFrames[index] = encodeColor(px, alpha, r.width)
+      colorFlipped[index] = encodeColor(Pic.mirror(px, r.width), Pic.mirror(alpha, r.width), r.width)
     end
+    local backAlpha = Pic.applyEdits(r.back, Pic.matte(r.back, 48, SpecksBack[dex]), 48, Edits.back[dex])
     return {
       size = r.size,
       timeline = r.timeline,
       frames = frames,
       flipped = flipped,
-      back = encode(r.back, Pic.applyEdits(r.back, Pic.matte(r.back, 48, SpecksBack[dex]), 48, Edits.back[dex]), 48),
+      back = encode(r.back, backAlpha, 48),
+      colorFrames = colorFrames,
+      colorFlipped = colorFlipped,
+      colorBack = encodeColor(r.back, backAlpha, 48),
     }
   end)
   if ok then species[dex] = res else errors[dex] = tostring(res) end

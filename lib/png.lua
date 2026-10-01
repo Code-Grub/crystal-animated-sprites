@@ -79,6 +79,26 @@ function PNG.encodeGrayAlpha(pixels, alpha, width, height, shades)
     .. chunk("IDAT", storedZlib(table.concat(rows))) .. chunk("IEND", "")
 end
 
+-- Full colour with alpha (colour type 6).  colors[i + 1] is { r, g, b } for
+-- shade index i; alpha[i] means the same as in encodeGrayAlpha.
+function PNG.encodeRGBA(pixels, alpha, width, height, colors)
+  local rows = {}
+  for y = 0, height - 1 do
+    local bytes = { "\0" }
+    local base = y * width
+    for x = 1, width do
+      local c = colors[pixels[base + x] + 1]
+      local a = alpha[base + x]
+      bytes[#bytes + 1] = string.char(c[1], c[2], c[3],
+        a == 0 and 0 or (a == 2 and 1 or 255))
+    end
+    rows[#rows + 1] = table.concat(bytes)
+  end
+  local ihdr = u32(width) .. u32(height) .. string.char(8, 6, 0, 0, 0)
+  return "\137PNG\r\n\26\n" .. chunk("IHDR", ihdr)
+    .. chunk("IDAT", storedZlib(table.concat(rows))) .. chunk("IEND", "")
+end
+
 function PNG.encodeGray(pixels, width, height, shades)
   local rows = {}
   for y = 0, height - 1 do

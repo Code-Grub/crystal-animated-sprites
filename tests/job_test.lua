@@ -21,7 +21,7 @@ end
 
 local function libs()
   local out = {}
-  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back", "edits" }) do
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "palette", "specks", "specks_back", "edits" }) do
     out[n] = readFile("lib/" .. n .. ".lua")
   end
   return out
@@ -104,6 +104,42 @@ if H.rom() then
     local a = rawAlphaAt(png, w, x, y)
     return a <= 1 and 0 or a
   end
+
+  -- The Crystal-colour copies: the same picture and the same alpha as the grey
+  -- ones, in the species' own colours.
+  H.test("job: colour copies keep the grey alpha and use only the species' palette", function()
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 25, last = 25 })
+    local s = assert(r.species[25], "species 25")
+    local Rom, Palette = H.need("rom"), H.need("palette")
+    local colors = Palette.colors(Rom.new(H.rom()), 25)
+    local allowed = {}
+    for _, c in ipairs(colors) do allowed[c[1] .. "," .. c[2] .. "," .. c[3]] = true end
+    local pairs_ = {
+      { "front", s.frames[0], s.colorFrames[0], s.size * 8 },
+      { "mirrored", s.flipped[0], s.colorFlipped[0], s.size * 8 },
+      { "back", s.back, s.colorBack, 48 },
+    }
+    for _, p in ipairs(pairs_) do
+      local label, grey, color, w = p[1], p[2], p[3], p[4]
+      H.eq(color:byte(26), 6, label .. " is colour type 6")
+      local g, c = rawScanlines(grey), rawScanlines(color)
+      local distinct, n = {}, 0
+      for y = 0, w - 1 do
+        for x = 0, w - 1 do
+          local ga = g:byte(y * (1 + 2 * w) + 1 + 2 * x + 2)
+          local at = y * (1 + 4 * w) + 1 + 4 * x
+          local cr, cg, cb, ca = c:byte(at + 1, at + 4)
+          H.eq(ca, ga, label .. " alpha at " .. x .. "," .. y)
+          if ca == 255 then
+            local key = cr .. "," .. cg .. "," .. cb
+            H.eq(allowed[key], true, label .. " colour " .. key .. " is not in the palette")
+            if not distinct[key] then distinct[key] = true; n = n + 1 end
+          end
+        end
+      end
+      H.eq(n >= 3, true, label .. " uses at least three palette colours")
+    end
+  end)
 
   -- Pidgey's feet leave a gap open only at the bottom edge.  A 3D battle mod
   -- would repaint it as white, so it has to carry the gap tag.

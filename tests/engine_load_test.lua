@@ -43,7 +43,7 @@ local Rom, Cache = need("rom"), need("cache")
 
 local function decodeBatch(first, last)
   local libs = {}
-  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back", "edits" }) do
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "palette", "specks", "specks_back", "edits" }) do
     libs[n] = readFile(MOD .. "/lib/" .. n .. ".lua")
   end
   local chunk = assert(loadfile(MOD .. "/jobs/decode.lua"))
@@ -149,6 +149,51 @@ do
     "the mirrored resting frame is registered at 1x")
   check(require("src.mods.Runtime").wantsHook("core.update"),
     "decode results are collected every frame, not only inside a battle")
+  run.release()
+end
+
+-- 4. SPRITE COLORS = CRYSTAL serves the colour copies and marks them true colour,
+--    which is how the engine is told to leave them out of its own palettes.
+do
+  local fs = makeFs()
+  seed(fs, realStamp, 3, 3)
+  local run, Data = load(fs)
+  local prefix = "mod_cache/" .. ID .. "/" .. realStamp
+  local function lookup(species, side, kind)
+    local path, trueColor = Sprites.path(Data, species, side, { kind = kind or "battle" })
+    return path, trueColor
+  end
+  local path, tc = lookup("FIXMON_C", "front")
+  eq(path, prefix .. "/front/003/0.png", "GAME colours serve the grey frame")
+  eq(tc, false, "and are not flagged true colour")
+
+  run.loader.modOptions[ID] = { sprite_colors = "crystal" }
+  path, tc = lookup("FIXMON_C", "front")
+  eq(path, prefix .. "/front/003/0c.png", "CRYSTAL colours serve the colour frame")
+  eq(tc, true, "and flag it true colour")
+  path, tc = lookup("FIXMON_C", "back")
+  eq(path, prefix .. "/back/003c.png", "the back sprite follows")
+  eq(tc, true, "and is flagged too")
+  path, tc = lookup("FIXMON_C", "front", "summary")
+  eq(path, prefix .. "/front/003/0c.png", "other screens follow")
+  eq(tc, true, "and are flagged too")
+  path = lookup("FIXMON_A", "front")
+  eq(path, "tests/fixture_data/assets/fixmon_a_front.png", "an uncached species still keeps the engine's art")
+
+  run.loader.modOptions[ID] = { sprite_colors = "crystal", back_sprites = "front" }
+  path, tc = lookup("FIXMON_C", "back")
+  eq(path, prefix .. "/front/003/0mc.png", "ANIMATED FRONT back sprites are mirrored colour frames")
+  eq(tc, true, "and flagged")
+
+  check(Data.battle_sprite_scales.cas_b003c ~= nil and Data.battle_sprite_scales.cas_b003c.scale == 1,
+    "the colour back pic is registered at 1x")
+  check(Data.battle_sprite_scales.cas_f003_0c ~= nil, "the colour resting frame is registered at 1x")
+  check(Data.battle_sprite_scales.cas_f003_0mc ~= nil, "the mirrored colour frame is registered at 1x")
+
+  run.loader.modOptions[ID] = { sprite_colors = "game" }
+  path, tc = lookup("FIXMON_C", "front")
+  eq(path, prefix .. "/front/003/0.png", "switching back to GAME serves grey again")
+  eq(tc, false, "unflagged")
   run.release()
 end
 

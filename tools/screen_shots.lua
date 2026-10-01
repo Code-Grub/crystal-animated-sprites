@@ -22,6 +22,22 @@ return function(game)
   U.wait(10)
   if not game.overworld then U.log("FAIL no overworld") return end
 
+  -- CAS_OPTS="key=value,key=value" sets this mod's options for the run, e.g.
+  -- CAS_OPTS=sprite_colors=crystal.  They are saved, so reset them afterwards.
+  local opts = os.getenv("CAS_OPTS")
+  if opts then
+    local values = {}
+    for pair in opts:gmatch("[^,]+") do
+      local k, v = pair:match("^([%w_]+)=(.+)$")
+      if k then values[k] = v end
+    end
+    require("src.mods.LauncherMods").setModOptions("crystal_animated_sprites", values)
+    game.save.options.modOptions = game.save.options.modOptions or {}
+    local bucket = game.save.options.modOptions.crystal_animated_sprites or {}
+    for k, v in pairs(values) do bucket[k] = v end
+    game.save.options.modOptions.crystal_animated_sprites = bucket
+  end
+
   local function wanted(name)
     if not only then return true end
     for n in only:gmatch("[^,]+") do if n == name then return true end end

@@ -10,8 +10,8 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest", "status", "screenanim", "specks", "specks_back", "edits" }
-  local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back", "edits" }
+                     "playback", "swap", "ingest", "status", "screenanim", "palette", "specks", "specks_back", "edits" }
+  local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "palette", "specks", "specks_back", "edits" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
   -- load, and each lib chunk receives `need` to reach the others.
@@ -83,12 +83,15 @@ return function(mod)
   for dex = 1, LAST do
     local ok, err = pcall(function()
       registerScale(("cas_b%03d"):format(dex), cache:backPath(dex))
+      registerScale(("cas_b%03dc"):format(dex), cache:backPath(dex, true))
       local seen = {}
       local function frame(index)
         if seen[index] then return end
         seen[index] = true
         registerScale(("cas_f%03d_%d"):format(dex, index), cache:framePath(dex, index))
         registerScale(("cas_f%03d_%dm"):format(dex, index), cache:framePath(dex, index, true))
+        registerScale(("cas_f%03d_%dc"):format(dex, index), cache:framePath(dex, index, false, true))
+        registerScale(("cas_f%03d_%dmc"):format(dex, index), cache:framePath(dex, index, true, true))
       end
       frame(0)
       for _, step in ipairs(Anim.timeline(Anim.script(rom, dex))) do frame(step.frame) end
@@ -200,16 +203,20 @@ return function(mod)
     return nil
   end
 
+  -- Returns the path to serve and whether it is the Crystal-colour copy.  The
+  -- engine is told about the second through ctx.trueColor, which is how it
+  -- knows to leave a picture out of its own palettes.
   local function resolve(dex, side, seconds)
     local meta = ready[dex] and not failed[dex] and cache:meta(dex)
     if not meta then return nil end
+    local color = meta.colors and mod.options:get("sprite_colors") == "crystal"
     if side == "back" then
       if mod.options:get("back_sprites") == "front" then
-        return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), true)
+        return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), true, color), color
       end
-      return cache:backPath(dex)
+      return cache:backPath(dex, color), color
     end
-    return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds))
+    return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), false, color), color
   end
 
   -- Screens that show a Pokemon without a battle (summary, Pokedex, evolution,
@@ -226,14 +233,23 @@ return function(mod)
     if ctx.kind == "battle" then
       pollJobs()
       local dex = dexOf(ctx.data, ctx.species)
-      local path = dex and resolve(dex, ctx.side, frozen)
-      return path or next(originalPath, ctx)
+      local path, color
+      if dex then path, color = resolve(dex, ctx.side, frozen) end
+      if path then
+        if color then ctx.trueColor = true end
+        return path
+      end
+      return next(originalPath, ctx)
     end
     if STILL_KINDS[ctx.kind] and ctx.side == "front" then
       pollJobs()
       local dex = dexOf(ctx.data, ctx.species)
-      local meta = dex and ready[dex] and not failed[dex] and cache:meta(dex)
-      if meta then return cache:framePath(dex, Playback.frameAt(meta.timeline, nil)) end
+      local path, color
+      if dex then path, color = resolve(dex, "front", nil) end
+      if path then
+        if color then ctx.trueColor = true end
+        return path
+      end
     end
     return next(originalPath, ctx)
   end, 930)
@@ -273,8 +289,7 @@ return function(mod)
   local screenAnim = ScreenAnim.new({
     pathFor = function(screen, seconds)
       local dex = dexOf(screen.game and screen.game.data, speciesOf(screen))
-      local meta = dex and ready[dex] and not failed[dex] and cache:meta(dex)
-      return meta and cache:framePath(dex, Playback.frameAt(meta.timeline, seconds)) or nil
+      return dex and (resolve(dex, "front", seconds)) or nil
     end,
     load = function(path)
       local image = screenImages[path]
