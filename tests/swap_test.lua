@@ -83,6 +83,37 @@ H.test("swap: the frame the engine hook is rebuilt for is the time since landing
   H.eq(seen, 2.25)
 end)
 
+H.test("swap: restart plays the animation again from its first frame", function()
+  local s = make({ pathFor = function(_, _, t) return "k" .. math.floor(t) end })
+  local b = battler()
+  s:tick({}, b, "front", 10)
+  s:tick({}, b, "front", 15)
+  H.eq(b.sprite, "img:k5")
+  s:restart(b, 16)
+  s:tick({}, b, "front", 16)
+  H.eq(b.sprite, "img:k0", "back to the first frame")
+  s:tick({}, b, "front", 17.5)
+  H.eq(b.sprite, "img:k1", "and running from there")
+end)
+
+H.test("swap: restart does nothing before the pic lands or after the engine takes it", function()
+  local landed = false
+  local s = make({ landed = function() return landed end,
+                   pathFor = function(_, _, t) return t and ("k" .. math.floor(t)) or "rest" end })
+  local b = battler()
+  s:tick({}, b, "front", 1)
+  s:restart(b, 2)                     -- not landed: no clock to reset
+  landed = true
+  s:tick({}, b, "front", 5)
+  H.eq(b.sprite, "img:k0", "the clock still starts at landing, not at the restart")
+  b.sprite = "transformed"
+  s:tick({}, b, "front", 6)
+  s:restart(b, 7)
+  H.eq(s:tick({}, b, "front", 8), false)
+  H.eq(b.sprite, "transformed")
+  s:restart(nil, 9)                   -- a missing battler is safe
+end)
+
 H.test("swap: an engine-replaced sprite is left alone for good", function()
   local s = make()
   local b = battler()

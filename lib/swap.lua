@@ -24,6 +24,14 @@ function Swap.new(deps)
   return setmetatable({ deps = deps, owned = setmetatable({}, { __mode = "k" }) }, Swap)
 end
 
+-- Plays the animation again from its first frame, e.g. when the battler
+-- attacks.  A battler whose pic has not landed yet, or whose sprite the engine
+-- has taken over, has nothing to restart.
+function Swap:restart(battler, now)
+  local rec = battler and self.owned[battler]
+  if rec and rec.start and not rec.stolen then rec.start = now end
+end
+
 function Swap:tick(screen, battler, side, now)
   if not (battler and battler.mon and battler.sprite) then return false end
   local deps = self.deps

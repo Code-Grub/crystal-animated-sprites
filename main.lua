@@ -500,10 +500,18 @@ return function(mod)
     love.graphics.setColor(1, 1, 1, 1)
   end
 
+  local attacking = setmetatable({}, { __mode = "k" })
   mod.hooks:wrap("battle.overlay", function(next, screen)
     local ok, err = pcall(function()
       pollJobs()
       local now = (love and love.timer) and love.timer.getTime() or 0
+      -- a move's animation starting is the moment its user attacks; the engine
+      -- clears animPlaying between moves, so each one is a fresh rising edge
+      local playing = screen.animPlaying and true or false
+      if playing and not attacking[screen] and mod.options:get("attack_animation") ~= "off" then
+        swap:restart(screen.animAttackerIsPlayer and screen.player or screen.enemy, now)
+      end
+      attacking[screen] = playing
       swap:tick(screen, screen.enemy, "front", now)
       swap:tick(screen, screen.player, "back", now)
     end)

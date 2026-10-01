@@ -27,6 +27,17 @@ return {
     default = "crystal",
     choices = { { "CRYSTAL", "crystal" }, { "GAME", "game" } },
   },
+  -- ON (default) plays a Pokemon's front animation when it uses a move.
+  -- Crystal does not do this; OFF plays it only when the Pokemon appears.
+  -- Your own Pokemon only moves with BACK SPRITES set to ANIMATED FRONT,
+  -- because Crystal's back sprites have no animation.
+  {
+    key = "attack_animation",
+    type = "choice",
+    label = "ATTACK ANIMATION",
+    default = "on",
+    choices = { { "ON", "on" }, { "OFF", "off" } },
+  },
   -- Draws the cache and job state over the battle, for bug reports on devices
   -- whose save folder cannot be opened.
   {

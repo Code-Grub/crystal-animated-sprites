@@ -35,6 +35,9 @@ part of the mod.
     icons of the game you are playing.
   - `BACK SPRITES`, for your own Pokemon. `CRYSTAL` (default) is Crystal's back
     sprite. `ANIMATED FRONT` is the animated front sprite, mirrored.
+  - `ATTACK ANIMATION`. `ON` (default) plays a Pokemon's animation again when
+    it uses a move. Crystal does not do this: `OFF` plays it only when the
+    Pokemon appears.
   - `DIAGNOSTICS` (off by default) draws a few lines over the battle screen
     with the mod version, which cache it is using, how many species are ready,
     and whether each sprite comes from this mod. It is for bug reports on
@@ -57,8 +60,9 @@ part of the mod.
 ## Notes
 
 - Like Crystal, the front animation plays once when a Pokemon appears, as it
-  lands with the cry, and then stays on its resting frame. It does not repeat
-  and it does not play when a Pokemon attacks. The Pokedex entry and the
+  lands with the cry, and then stays on its resting frame. It does not repeat.
+  With `ATTACK ANIMATION` on, which is not how Crystal behaves, it plays again
+  each time that Pokemon uses a move. The Pokedex entry and the
   status screen play it once each time they open. The animation at the top of
   this page repeats only because it is a GIF.
 - After a Pokemon uses Transform, or after a Silph Scope reveals the Pokemon
