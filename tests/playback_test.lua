@@ -11,10 +11,11 @@ H.test("playback: steps by elapsed time", function()
   H.eq(P.frameAt(tl, 1.49), 2)
 end)
 
-H.test("playback: rests on frame 0 then loops", function()
-  H.eq(P.frameAt(tl, 1.6), 0)
-  H.eq(P.frameAt(tl, 3.49), 0)
-  H.eq(P.frameAt(tl, 3.51), 1) -- 1.5s animation + 2s rest = 3.5s cycle
+H.test("playback: plays once, as Crystal does, then stays on frame 0", function()
+  H.eq(P.frameAt(tl, 1.49), 2)
+  H.eq(P.frameAt(tl, 1.51), 0)
+  H.eq(P.frameAt(tl, 3.51), 0, "it does not start again")
+  H.eq(P.frameAt(tl, 1000), 0)
 end)
 
 H.test("playback: empty timeline and bad time are safe", function()

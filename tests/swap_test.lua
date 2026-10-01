@@ -45,6 +45,44 @@ H.test("swap: a new frame rebuilds", function()
   H.eq(calls.rebuild, 2)
 end)
 
+H.test("swap: the clock starts when the pic lands, not before", function()
+  local landed = false
+  local s, calls = make({
+    landed = function() return landed end,
+    pathFor = function(_, _, t) return t and ("k" .. math.floor(t)) or "rest" end,
+  })
+  local b = battler()
+  s:tick({}, b, "front", 100)
+  H.eq(b.sprite, "img:rest", "resting frame while it has not landed")
+  s:tick({}, b, "front", 105)
+  H.eq(b.sprite, "img:rest", "and still after time has passed")
+  landed = true
+  s:tick({}, b, "front", 106)
+  H.eq(b.sprite, "img:k0", "second 0 is the moment it lands")
+  s:tick({}, b, "front", 108.5)
+  H.eq(b.sprite, "img:k2", "later frames follow that moment")
+end)
+
+H.test("swap: each battler has its own clock", function()
+  local s = make({ pathFor = function(_, _, t) return "k" .. math.floor(t) end })
+  local a, b = battler(), battler()
+  s:tick({}, a, "front", 10)
+  s:tick({}, b, "front", 13)
+  s:tick({}, a, "front", 14)
+  s:tick({}, b, "front", 14)
+  H.eq(a.sprite, "img:k4")
+  H.eq(b.sprite, "img:k1")
+end)
+
+H.test("swap: the frame the engine hook is rebuilt for is the time since landing", function()
+  local seen
+  local s = make({ rebuild = function(_, _, key, seconds) seen = seconds return "img:" .. key end })
+  local b = battler()
+  s:tick({}, b, "front", 50)
+  s:tick({}, b, "front", 52.25)
+  H.eq(seen, 2.25)
+end)
+
 H.test("swap: an engine-replaced sprite is left alone for good", function()
   local s = make()
   local b = battler()
@@ -63,7 +101,7 @@ H.test("swap: a busy battler is skipped and resumes afterwards", function()
   H.eq(b.sprite, "vanilla")
   busy = false
   H.eq(s:tick({}, b, "front", 1), true)
-  H.eq(b.sprite, "img:k1")
+  H.eq(b.sprite, "img:k0", "the clock starts when it is first shown")
 end)
 
 H.test("swap: species with no dex in range are skipped", function()
@@ -95,7 +133,7 @@ H.test("swap: a new battler table starts fresh", function()
   s:tick({}, first, "front", 1)
   local second = battler()
   H.eq(s:tick({}, second, "front", 1), true)
-  H.eq(second.sprite, "img:k1")
+  H.eq(second.sprite, "img:k0", "and gets a clock of its own")
 end)
 
 H.test("swap: missing battler or sprite is safe", function()

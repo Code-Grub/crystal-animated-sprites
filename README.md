@@ -10,7 +10,7 @@ the download. The animation below is a capture of the running game and is not
 part of the mod.
 
 <p align="center">
-  <img src="images/mewtwo.gif" alt="One loop of Mewtwo's Crystal animation in a Pokemon Red battle against Charizard" width="480">
+  <img src="images/mewtwo.gif" alt="Mewtwo's Crystal animation in a Pokemon Red battle against Charizard" width="480">
 </p>
 
 ## What you get
@@ -56,8 +56,11 @@ part of the mod.
 
 ## Notes
 
-- The front animation loops with a short rest on the resting frame. Crystal
-  itself plays it once when a Pokemon appears.
+- Like Crystal, the front animation plays once when a Pokemon appears, as it
+  lands with the cry, and then stays on its resting frame. It does not repeat
+  and it does not play when a Pokemon attacks. The Pokedex entry and the
+  status screen play it once each time they open. The animation at the top of
+  this page repeats only because it is a GIF.
 - After a Pokemon uses Transform, or after a Silph Scope reveals the Pokemon
   Tower ghost, that sprite holds Crystal's resting pose instead of animating.
 - On the title screen the Pokemon is drawn in full colour right up to Red's

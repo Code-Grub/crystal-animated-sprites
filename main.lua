@@ -193,9 +193,10 @@ return function(mod)
   ---------------------------------------------------------------------------
   -- Serving frames
   ---------------------------------------------------------------------------
-  -- The time a swap is rebuilding for.  It is nil outside a swap, so a lookup
-  -- the engine makes on its own (battle start, Transform, the ghost reveal)
-  -- gets the resting frame instead of a random mid-animation one.
+  -- The time since the pic landed that a swap is rebuilding for.  It is nil
+  -- outside a swap, and for a pic that has not landed, so a lookup the engine
+  -- makes on its own (battle start, Transform, the ghost reveal) gets the
+  -- resting frame instead of a mid-animation one.
   local frozen
 
   local function dexOf(data, species)
@@ -267,13 +268,27 @@ return function(mod)
       if screen.ghost or screen.ghostReal or battler.fainted then return true end
       return screen.fxFaintActive and screen:fxFaintActive(battler) or false
     end,
+    -- Crystal plays the animation once, as the pic appears with the cry.  The
+    -- pic is on show once the intro slide and any send-out grow-in are over,
+    -- the same conditions the engine draws it under.  Our own back slot has no
+    -- send-out of its own to watch, so it starts once the intro text is done.
+    landed = function(screen, battler)
+      if (screen.introSlide or 0) > 0 then return false end
+      if screen.growInScale and screen:growInScale(battler) then return false end
+      if battler.isPlayer then
+        return screen.phase ~= "intro" and screen.phase ~= "messages"
+      end
+      return not (screen.showEnemyTrainer or screen.enemySendingOut or screen.enemyHidden)
+    end,
     pathFor = resolve,
-    rebuild = function(screen, battler)
+    rebuild = function(screen, battler, _, seconds)
       BattleState = BattleState or require("src.battle.BattleState")
       -- makeBattler is pure and resolves the sprite through the engine's own
       -- palette pipeline, which calls the hook above for the frozen time.
+      frozen = seconds
       local ok, fresh = pcall(BattleState.makeBattler, screen.data, battler.mon,
         battler.isPlayer and true or false, nil)
+      frozen = nil
       return ok and fresh and fresh.sprite or nil
     end,
   })
@@ -488,9 +503,9 @@ return function(mod)
   mod.hooks:wrap("battle.overlay", function(next, screen)
     local ok, err = pcall(function()
       pollJobs()
-      frozen = (love and love.timer) and love.timer.getTime() or 0
-      swap:tick(screen, screen.enemy, "front", frozen)
-      swap:tick(screen, screen.player, "back", frozen)
+      local now = (love and love.timer) and love.timer.getTime() or 0
+      swap:tick(screen, screen.enemy, "front", now)
+      swap:tick(screen, screen.player, "back", now)
     end)
     frozen = nil
     if not ok then warnOnce("overlay", "sprite swap failed: %s", tostring(err)) end
