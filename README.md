@@ -48,10 +48,10 @@ part of the mod.
 1. Install the mod and enable it.
 2. When the launcher asks for a file, pick your own **Pokemon Crystal** ROM.
    English (UE) v1.0 and v1.1 are supported; the launcher checks it for you.
-3. Play. The first launch builds the sprites in the background, which takes a
-   few seconds, so give it a moment before your first battle. A Pokemon whose
-   sprite is not built yet shows the normal one, and switches to Crystal's as
-   soon as it is ready, even in the middle of a battle.
+3. Play. The first launch builds the sprites in the background, which takes
+   about half a minute, so give it a moment before your first battle. A Pokemon
+   whose sprite is not built yet shows the normal one, and switches to
+   Crystal's as soon as it is ready, even in the middle of a battle.
 
 ## Notes
 
@@ -64,6 +64,10 @@ part of the mod.
 - Only front pictures are replaced outside battle. Back pictures on other
   screens (the Hall of Fame's back pass) and trainer pictures keep their
   usual art, because those screens are laid out for the original sizes.
+- The built sprites take about 30 MB, because both the Crystal-colour and the
+  game-colour versions are kept, so changing `SPRITE COLORS` is instant and
+  needs no rebuild. A mod update that changes the sprites builds a new set, and
+  the old one is left in the mod's cache folder.
 - Sprites are rebuilt on their own if you swap the ROM for a different dump.
 
 ## 3D battle mods
