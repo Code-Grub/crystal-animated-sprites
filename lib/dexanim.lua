@@ -29,6 +29,13 @@ function DexAnim:tick(screen, now)
   local image = self.deps.load(path)
   if image then
     screen.sprite = image
+    -- Battle Art wraps the screen's draw and, unless one of its own sprite
+    -- packs applies, sets screen.sprite back to the picture it remembered when
+    -- the screen was created, every frame.  Keep that memory current so the
+    -- swap above is not undone.
+    if screen.__battleArtOriginalSprite ~= nil then
+      screen.__battleArtOriginalSprite = image
+    end
     self.shown = path
   end
 end

@@ -109,3 +109,21 @@ H.test("dexanim: a frame that fails to load keeps the last good picture and is r
   a:tick(s, 0.1)
   H.eq(s.sprite, "img:frame0")
 end)
+
+H.test("dexanim: Battle Art's remembered picture follows, or it puts the old one back", function()
+  local a = make()
+  local s = screen()
+  s.__battleArtOriginalSprite = "vanilla"
+  a:tick(s, 0)
+  H.eq(s.__battleArtOriginalSprite, "img:frame0")
+  a:tick(s, 2)
+  H.eq(s.__battleArtOriginalSprite, "img:frame2")
+  H.eq(s.sprite, "img:frame2")
+end)
+
+H.test("dexanim: a screen without that field does not grow one", function()
+  local a = make()
+  local s = screen()
+  a:tick(s, 0)
+  H.eq(s.__battleArtOriginalSprite, nil)
+end)
