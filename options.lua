@@ -1,12 +1,13 @@
--- CRYSTAL is Crystal's own static back art.  ANIMATED FRONT plays the front
--- animation mirrored in the back slot, which is what the older sprite mods
--- did.  Read by the mod manager (manifest.options_schema) and by main.lua.
+-- ANIMATED FRONT (default) shows the front animation, mirrored, in the back
+-- slot, which is what the older sprite mods did and lets your own Pokemon
+-- animate.  CRYSTAL is Crystal's own static back art.  Read by the mod manager
+-- (manifest.options_schema) and by main.lua.
 return {
   {
     key = "back_sprites",
     type = "choice",
     label = "BACK SPRITES",
-    default = "crystal",
+    default = "front",
     choices = { { "CRYSTAL", "crystal" }, { "ANIMATED FRONT", "front" } },
   },
   -- CRYSTAL (default) draws each Pokemon in the colours Crystal gave it.

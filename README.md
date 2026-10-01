@@ -33,8 +33,9 @@ part of the mod.
     and Yellow keep their own palettes.
   - `PARTY ICONS`. `CRYSTAL` (default) uses Crystal's icons. `GAME` keeps the
     icons of the game you are playing.
-  - `BACK SPRITES`, for your own Pokemon. `CRYSTAL` (default) is Crystal's back
-    sprite. `ANIMATED FRONT` is the animated front sprite, mirrored.
+  - `BACK SPRITES`, for your own Pokemon. `ANIMATED FRONT` (default) is the
+    animated front sprite, mirrored, so your Pokemon animates too. `CRYSTAL` is
+    Crystal's own back sprite, which is a still picture.
   - `ATTACK ANIMATION`. `ON` (default) plays a Pokemon's animation again when
     it uses a move. Crystal does not do this: `OFF` plays it only when the
     Pokemon appears.

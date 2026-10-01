@@ -117,7 +117,7 @@ do
   local fs = makeFs()
   seed(fs, realStamp, 3, 3)
   local run, Data = load(fs)
-  run.loader.modOptions[ID] = { sprite_colors = "game" } -- this section checks the grey copies
+  run.loader.modOptions[ID] = { sprite_colors = "game", back_sprites = "crystal" } -- this section checks the grey copies
   eq(run.mod and run.mod.state, "loaded", "the mod loads in the real loader")
   eq(#run.errors, 0, "no load errors")
 
@@ -129,7 +129,7 @@ do
     "a lookup the engine makes itself (battle start, Transform, ghost reveal) "
     .. "gets the resting frame, not whatever the clock says")
   eq(pathFor(Data, "FIXMON_C", "back"), prefix .. "/back/003.png",
-    "back slot serves Crystal's back art by default")
+    "back slot serves Crystal's back art when BACK SPRITES is CRYSTAL")
   eq(pathFor(Data, "FIXMON_A", "front"), "tests/fixture_data/assets/fixmon_a_front.png",
     "an uncached species keeps the engine's art")
   for _, kind in ipairs({ "summary", "dex", "evolution", "hof", "trade", "title",
@@ -188,13 +188,15 @@ do
   local path, tc = lookup("FIXMON_C", "front")
   eq(path, prefix .. "/front/003/0c.png", "by default the colour frame is served")
   eq(tc, true, "and flagged true colour")
+  path = lookup("FIXMON_C", "back")
+  eq(path, prefix .. "/front/003/0mc.png", "by default the back slot shows the mirrored animated front")
 
   run.loader.modOptions[ID] = { sprite_colors = "game" }
   path, tc = lookup("FIXMON_C", "front")
   eq(path, prefix .. "/front/003/0.png", "GAME colours serve the grey frame")
   eq(tc, false, "and are not flagged true colour")
 
-  run.loader.modOptions[ID] = { sprite_colors = "crystal" }
+  run.loader.modOptions[ID] = { sprite_colors = "crystal", back_sprites = "crystal" }
   path, tc = lookup("FIXMON_C", "front")
   eq(path, prefix .. "/front/003/0c.png", "CRYSTAL colours serve the colour frame")
   eq(tc, true, "and flag it true colour")
