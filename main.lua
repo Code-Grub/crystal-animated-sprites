@@ -211,12 +211,30 @@ return function(mod)
     return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds))
   end
 
+  -- Screens that show a Pokemon without a battle (summary, Pokedex, evolution,
+  -- Hall of Fame, the intro and so on) get the resting Crystal frame.  Only
+  -- fronts: Crystal's back art is a different size from the engine's, and
+  -- those screens lay their back pics out for the engine's.  Other players'
+  -- sprites in online play are left alone.
+  local STILL_KINDS = { summary = true, dex = true, evolution = true, hof = true,
+    trade = true, title = true, oak = true, credits = true, box = true,
+    hatch = true, photo = true, overworld = true }
+
   mod.hooks:wrap("pokemon.sprite", function(next, originalPath, ctx)
-    if not (ctx and ctx.kind == "battle") then return next(originalPath, ctx) end
-    pollJobs()
-    local dex = dexOf(ctx.data, ctx.species)
-    local path = dex and resolve(dex, ctx.side, frozen)
-    return path or next(originalPath, ctx)
+    if not ctx then return next(originalPath, ctx) end
+    if ctx.kind == "battle" then
+      pollJobs()
+      local dex = dexOf(ctx.data, ctx.species)
+      local path = dex and resolve(dex, ctx.side, frozen)
+      return path or next(originalPath, ctx)
+    end
+    if STILL_KINDS[ctx.kind] and ctx.side == "front" then
+      pollJobs()
+      local dex = dexOf(ctx.data, ctx.species)
+      local meta = dex and ready[dex] and not failed[dex] and cache:meta(dex)
+      if meta then return cache:framePath(dex, Playback.frameAt(meta.timeline, nil)) end
+    end
+    return next(originalPath, ctx)
   end, 930)
 
   local BattleState

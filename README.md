@@ -1,7 +1,7 @@
 # Crystal Animated Sprites
 
-Crystal's animated battle sprites in Pokemon Red, Blue and Yellow on
-Gen1Recomp, decoded from your own Pokemon Crystal ROM.
+Crystal's animated sprites in Pokemon Red, Blue and Yellow on Gen1Recomp,
+decoded from your own Pokemon Crystal ROM.
 
 **No artwork is included.** The mod reads the sprites, animation frames and
 timing straight out of a Crystal ROM that you supply, builds them once, and
@@ -18,6 +18,10 @@ part of the mod.
 - The enemy's front sprite plays Crystal's own animation in battle, for the
   151 Kanto species. The frames, the order and the timing come from the game's
   animation scripts, not from a recording.
+- Crystal's picture, at its resting frame, also replaces the front sprite on
+  the other screens that show a Pokemon: the status screen, the Pokedex, the
+  evolution screen, the Hall of Fame, the title screen, Prof. Oak's intro,
+  trades and the credits.
 - A `BACK SPRITES` option for your own Pokemon:
   - `CRYSTAL` (default): Crystal's back sprite.
   - `ANIMATED FRONT`: the animated front sprite, mirrored.
@@ -42,8 +46,9 @@ part of the mod.
   itself plays it once when a Pokemon appears.
 - After a Pokemon uses Transform, or after a Silph Scope reveals the Pokemon
   Tower ghost, that sprite holds Crystal's resting pose instead of animating.
-- Only battle sprites are replaced. The Pokedex, status screen and box screens
-  keep their usual pictures.
+- Only front pictures are replaced outside battle. Back pictures on other
+  screens (the Hall of Fame's back pass), trainer pictures and party icons keep
+  their usual art, because those screens are laid out for the original sizes.
 - Sprites are rebuilt on their own if you swap the ROM for a different dump.
 
 ## Conflicts

@@ -131,9 +131,17 @@ do
     "back slot serves Crystal's back art by default")
   eq(pathFor(Data, "FIXMON_A", "front"), "tests/fixture_data/assets/fixmon_a_front.png",
     "an uncached species keeps the engine's art")
-  eq(pathFor(Data, "FIXMON_C", "front", "summary"),
-    "tests/fixture_data/assets/fixmon_c_front.png",
-    "non-battle screens keep the engine's art")
+  for _, kind in ipairs({ "summary", "dex", "evolution", "hof", "trade", "title",
+                          "oak", "credits", "box", "hatch", "photo", "overworld" }) do
+    eq(pathFor(Data, "FIXMON_C", "front", kind), prefix .. "/front/003/0.png",
+      kind .. " screen serves the resting Crystal frame")
+  end
+  eq(pathFor(Data, "FIXMON_A", "front", "summary"), "tests/fixture_data/assets/fixmon_a_front.png",
+    "an uncached species keeps the engine's art on other screens too")
+  eq(pathFor(Data, "FIXMON_C", "front", "online"), "tests/fixture_data/assets/fixmon_c_front.png",
+    "other players' sprites in online play are left alone")
+  eq(pathFor(Data, "FIXMON_C", "back", "hof"), "tests/fixture_data/assets/fixmon_c_back.png",
+    "back pics outside battle keep the engine's art, their layout is not Crystal's size")
   check(Data.battle_sprite_scales.cas_b003 ~= nil
     and Data.battle_sprite_scales.cas_b003.scale == 1,
     "the back pic is registered at 1x")
