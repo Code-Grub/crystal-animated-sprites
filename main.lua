@@ -10,7 +10,7 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest", "status", "specks", "specks_back", "edits" }
+                     "playback", "swap", "ingest", "status", "dexanim", "specks", "specks_back", "edits" }
   local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back", "edits" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
@@ -36,6 +36,7 @@ return function(mod)
   local Rom, Anim, Cache = need("rom"), need("anim"), need("cache")
   local Playback, Swap, Ingest = need("playback"), need("swap"), need("ingest")
   local Status = need("status")
+  local DexAnim = need("dexanim")
 
   local romBytes, readErr = mod.imports:read("crystal_rom", 0, 2097152)
   if not romBytes then
@@ -255,10 +256,42 @@ return function(mod)
     end,
   })
 
+  -- The Pokedex entry screen loads its picture once, so it is animated by
+  -- swapping the image it draws.  Images are kept by path: a species has a
+  -- handful of frames and the entry loops over them.
+  local dexImages = {}
+  local dexAnim = DexAnim.new({
+    pathFor = function(screen, seconds)
+      local dex = dexOf(screen.game and screen.game.data, screen.species)
+      local meta = dex and ready[dex] and not failed[dex] and cache:meta(dex)
+      return meta and cache:framePath(dex, Playback.frameAt(meta.timeline, seconds)) or nil
+    end,
+    load = function(path)
+      local image = dexImages[path]
+      if image then return image end
+      local ok, loaded = pcall(love.graphics.newImage, path)
+      if ok and loaded then
+        dexImages[path] = loaded
+        return loaded
+      end
+      return nil
+    end,
+  })
+  local DexEntryMenu
+
+  local function tickDexEntry(game)
+    DexEntryMenu = DexEntryMenu or require("src.ui.DexEntryMenu")
+    local top = game and game.stack and game.stack:top()
+    if top and getmetatable(top) ~= DexEntryMenu then top = nil end
+    dexAnim:tick(top, (love and love.timer) and love.timer.getTime() or 0)
+  end
+
   -- Results are collected every frame, so a decode that finished during boot is
   -- already cached by the first battle instead of being written at its start.
   mod.hooks:wrap("core.update", function(next, game, dt)
     pollJobs()
+    local ok, err = pcall(tickDexEntry, game)
+    if not ok then warnOnce("dexanim", "pokedex animation failed: %s", tostring(err)) end
     return next(game, dt)
   end, 930)
 

@@ -3,7 +3,7 @@
 ## 0.2.0
 
 ### Added
-- Crystal's picture now replaces the front sprite outside battle too: the status screen, the Pokedex, the evolution screen, the Hall of Fame and League PC, the title screen, Prof. Oak's intro, trades and the credits. These screens show the resting frame, not the animation.
+- Crystal's picture now replaces the front sprite outside battle too: the status screen, the Pokedex, the evolution screen, the Hall of Fame and League PC, the title screen, Prof. Oak's intro, trades and the credits. These screens show the resting frame, except the Pokedex entry, which plays the animation.
 - `tools/screen_shots.lua`, a developer tool that opens each of those screens in the real engine and screenshots it.
 
 ### Notes

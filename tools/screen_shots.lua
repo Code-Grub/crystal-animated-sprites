@@ -48,6 +48,31 @@ return function(game)
     U.log("path", kind, tostring(path))
   end
 
+  -- CAS_DEXFRAMES=n: sit on the Pokedex entry and take n shots CAS_GAP frames
+  -- apart, to see the picture animate.
+  local dexFrames = tonumber(os.getenv("CAS_DEXFRAMES") or "0")
+  if dexFrames > 0 then
+    local state = require("src.ui.DexEntryMenu").new(game, { species = SPECIES, forceOwned = true }, function() end)
+    game.stack:push(state)
+    -- the driver steps the game directly and skips the core.update hook the
+    -- real loop goes through, so call it here the way love.update would
+    local Runtime = require("src.mods.Runtime")
+    local function step(n)
+      for _ = 1, n do
+        Runtime.call("core.update", function() end, game, 1 / 60)
+        U.wait(1)
+      end
+    end
+    step(60)
+    for i = 1, dexFrames do
+      U.shot(game, ("%s/dexanim_%s_%02d.png"):format(DIR, SPECIES, i))
+      U.log("dexanim", i, tostring(state.sprite))
+      step(tonumber(os.getenv("CAS_GAP") or "10"))
+    end
+    game.stack:pop()
+    return
+  end
+
   local mon = game.save.party[1]
   show("summary", function() return require("src.ui.SummaryMenu").new(game, mon) end, 120)
   show("dex", function()
