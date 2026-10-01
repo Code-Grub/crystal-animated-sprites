@@ -277,12 +277,19 @@ return function(mod)
       return nil
     end,
   })
-  local DexEntryMenu
 
+  -- The entry is recognised by the id the engine stamps on every screen it
+  -- builds, not by its class, so a UI mod that wraps or replaces the screen
+  -- through the screen registry still counts as long as it draws screen.sprite.
   local function tickDexEntry(game)
-    DexEntryMenu = DexEntryMenu or require("src.ui.DexEntryMenu")
     local top = game and game.stack and game.stack:top()
-    if top and getmetatable(top) ~= DexEntryMenu then top = nil end
+    if top and top.screenId == "DexEntryMenu" and not (top.species and top.sprite) then
+      -- shown in the DIAGNOSTICS readout, which phones can read
+      warnOnce("dexshape", "dex entry: species=%s sprite=%s", tostring(top.species), tostring(top.sprite))
+    end
+    if top and not (top.screenId == "DexEntryMenu" and top.species and top.sprite) then
+      top = nil
+    end
     dexAnim:tick(top, (love and love.timer) and love.timer.getTime() or 0)
   end
 

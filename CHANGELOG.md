@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed
+- The Pokedex entry animation now starts for any Pokedex entry screen the engine builds, including one that another mod wraps or replaces, instead of only the engine's own screen class. If an entry screen cannot be animated, the reason shows in the DIAGNOSTICS readout during the next battle.
+
 ## 0.2.0
 
 ### Added

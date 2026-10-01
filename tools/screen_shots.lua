@@ -52,8 +52,9 @@ return function(game)
   -- apart, to see the picture animate.
   local dexFrames = tonumber(os.getenv("CAS_DEXFRAMES") or "0")
   if dexFrames > 0 then
-    local state = require("src.ui.DexEntryMenu").new(game, { species = SPECIES, forceOwned = true }, function() end)
-    game.stack:push(state)
+    -- the route the Pokedex menu takes, so the stamped screenId is there
+    local state = require("src.ui.Screens").push(game, "DexEntryMenu", SPECIES)
+    U.log("dex screenId", tostring(state.screenId))
     -- the driver steps the game directly and skips the core.update hook the
     -- real loop goes through, so call it here the way love.update would
     local Runtime = require("src.mods.Runtime")
