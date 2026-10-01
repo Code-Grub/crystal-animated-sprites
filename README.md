@@ -44,8 +44,7 @@ part of the mod.
     and whether each sprite comes from this mod. It is for bug reports on
     devices where the save folder cannot be opened, such as Android.
 - The sprites have transparent backgrounds, so they work with mods that replace
-  the battle background. Gaps that are really see-through, such as between a
-  bird's feet or inside a hood, are transparent too, and many sprites were
+  the battle background. Gaps that are really see-through are transparent too, and many sprites were
   checked and touched up by hand so that white details that belong stay solid.
 
 ## Installing
