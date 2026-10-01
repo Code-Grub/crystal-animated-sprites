@@ -28,8 +28,9 @@ part of the mod.
   side. They are drawn in the game's own colours.
 - Options:
   - `SPRITE COLORS`. `CRYSTAL` (default) draws each Pokemon in the colours
-    Crystal gave it. `GAME` draws the sprites in the colours of the game you
-    are playing, so Red, Blue and Yellow keep their own palettes.
+    Crystal gave it, which needs the game's COLORS setting on ADVANCED. `GAME`
+    draws the sprites in the colours of the game you are playing, so Red, Blue
+    and Yellow keep their own palettes.
   - `PARTY ICONS`. `CRYSTAL` (default) uses Crystal's icons. `GAME` keeps the
     icons of the game you are playing.
   - `BACK SPRITES`, for your own Pokemon. `CRYSTAL` (default) is Crystal's back
@@ -62,6 +63,9 @@ part of the mod.
 - On the title screen the Pokemon is drawn in full colour right up to Red's
   outline. The logo, Red and the text are the game's own art and keep the
   game's colours.
+- Crystal's colours only show when the game's COLORS setting is ADVANCED. In
+  any other mode the game shades every sprite with its own palette, so
+  `SPRITE COLORS` set to `CRYSTAL` looks the same as `GAME`.
 - Party icons are drawn in the game's colours. Crystal colours its icons with
   a separate set of palettes that the engine does not apply to icons.
 - Only front pictures are replaced outside battle. Back pictures on other
