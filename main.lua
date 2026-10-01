@@ -281,8 +281,18 @@ return function(mod)
   -- The entry is recognised by the id the engine stamps on every screen it
   -- builds, not by its class, so a UI mod that wraps or replaces the screen
   -- through the screen registry still counts as long as it draws screen.sprite.
+  -- the newest distinct screen ids on top of the stack, for the readout
+  local recentScreens, dexNote = {}, nil
+  local function noteScreen(top)
+    local id = top and top.screenId
+    if not id or recentScreens[1] == id then return end
+    table.insert(recentScreens, 1, id)
+    recentScreens[4] = nil
+  end
+
   local function tickDexEntry(game)
     local top = game and game.stack and game.stack:top()
+    noteScreen(top)
     if top and top.screenId == "DexEntryMenu" and not (top.species and top.sprite) then
       -- shown in the DIAGNOSTICS readout, which phones can read
       warnOnce("dexshape", "dex entry: species=%s sprite=%s", tostring(top.species), tostring(top.sprite))
@@ -291,6 +301,9 @@ return function(mod)
       top = nil
     end
     dexAnim:tick(top, (love and love.timer) and love.timer.getTime() or 0)
+    if top then
+      dexNote = "DEX " .. (top.sprite and "ON" or "NO IMG") .. " " .. (dexAnim.shown and "SHOWN" or "NONE")
+    end
   end
 
   -- Results are collected every frame, so a decode that finished during boot is
@@ -326,7 +339,7 @@ return function(mod)
       jobs = (mod.job and mod.job:available()) and true or false,
       enemy = sideInfo(screen, screen.enemy, "front"),
       player = sideInfo(screen, screen.player, "back"),
-      err = lastErr,
+      err = lastErr, note = dexNote, screens = recentScreens,
     })
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.rectangle("fill", 0, 0, 160, #lines * 8 + 2)

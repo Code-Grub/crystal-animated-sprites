@@ -17,6 +17,12 @@ function Status.lines(s)
     ("JOB %s RUN %d WAIT %d"):format(s.jobs and "OK" or "NO", s.running, s.waiting),
     side("E", s.enemy) .. " " .. side("P", s.player),
   }
+  -- what the Pokedex entry animation last saw, and the newest screens the game
+  -- stacked, so a report can say which screen the entry really is
+  if s.note then lines[#lines + 1] = tostring(s.note) end
+  for i = 1, math.min(2, #(s.screens or {})) do
+    lines[#lines + 1] = "SCR " .. tostring(s.screens[i])
+  end
   if s.err then lines[#lines + 1] = ("ERR " .. tostring(s.err):upper()):sub(1, WIDTH) end
   for i, line in ipairs(lines) do lines[i] = line:sub(1, WIDTH) end
   return lines

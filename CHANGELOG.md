@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+### Added
+- The DIAGNOSTICS readout now also shows what the Pokedex entry animation last saw (`DEX ON SHOWN` when it is running) and the ids of the last screens the game stacked (`SCR DexEntryMenu`). Visit a Pokedex entry, then start a battle with DIAGNOSTICS on, to read them. This is for finding out why an entry does not animate on a particular setup.
+
 ## 0.2.1
 
 ### Fixed

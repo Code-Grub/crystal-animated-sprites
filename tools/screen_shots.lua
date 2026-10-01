@@ -71,6 +71,14 @@ return function(game)
       step(tonumber(os.getenv("CAS_GAP") or "10"))
     end
     game.stack:pop()
+    -- CAS_AFTER_BATTLE=1: then a wild battle, to photograph the DIAGNOSTICS readout
+    if os.getenv("CAS_AFTER_BATTLE") then
+      local battle = require("src.battle.BattleState").newWild(game, SPECIES, 10)
+      battle.onFinish = function() end
+      game.overworld:pushBattle(battle)
+      step(200)
+      U.shot(game, ("%s/after_battle_%s.png"):format(DIR, SPECIES))
+    end
     return
   end
 

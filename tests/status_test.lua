@@ -46,3 +46,17 @@ H.test("status: an error gets its own line, upper-cased and cut to fit", functio
   H.eq(lines[5], "ERR DECODE OF SPECIE")
   H.eq(#Status.lines(state()), 4, "no error line when there is no error")
 end)
+
+H.test("status: the latest screens and the dex note get their own lines", function()
+  local lines = Status.lines(state({ note = "DEX NO PATH", screens = { "DexEntryMenu", "PokedexMenu", "StartMenu" } }))
+  H.eq(lines[5], "DEX NO PATH")
+  H.eq(lines[6], "SCR DexEntryMenu")
+  H.eq(lines[7], "SCR PokedexMenu")
+  H.eq(lines[8], nil, "only the two newest screens are shown")
+end)
+
+H.test("status: the error line comes after the dex lines, and long screen ids are cut", function()
+  local lines = Status.lines(state({ note = "X", screens = { "AVeryLongScreenIdentifier" }, err = "boom" }))
+  H.eq(lines[6], "SCR AVeryLongScreenI")
+  H.eq(lines[7], "ERR BOOM")
+end)
