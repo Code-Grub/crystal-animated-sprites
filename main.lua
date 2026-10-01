@@ -207,10 +207,12 @@ return function(mod)
   -- Returns the path to serve and whether it is the Crystal-colour copy.  The
   -- engine is told about the second through ctx.trueColor, which is how it
   -- knows to leave a picture out of its own palettes.
-  local function resolve(dex, side, seconds)
+  -- grey: serve the grey copy whatever SPRITE COLORS says, for a screen whose
+  -- palette handling cannot take true-colour art
+  local function resolve(dex, side, seconds, grey)
     local meta = ready[dex] and not failed[dex] and cache:meta(dex)
     if not meta then return nil end
-    local color = meta.colors and mod.options:get("sprite_colors") == "crystal"
+    local color = not grey and meta.colors and mod.options:get("sprite_colors") == "crystal"
     if side == "back" then
       if mod.options:get("back_sprites") == "front" then
         return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), true, color), color
@@ -246,7 +248,10 @@ return function(mod)
       pollJobs()
       local dex = dexOf(ctx.data, ctx.species)
       local path, color
-      if dex then path, color = resolve(dex, "front", nil) end
+      -- The title screen leaves Red's whole box out of the true-colour redraw,
+      -- so any of the Pokemon that reaches into it turns Red's purple.  It
+      -- keeps the grey sprite and the engine's own title palette.
+      if dex then path, color = resolve(dex, "front", nil, ctx.kind == "title") end
       if path then
         if color then ctx.trueColor = true end
         return path

@@ -186,6 +186,12 @@ do
   path, tc = lookup("FIXMON_C", "front", "summary")
   eq(path, prefix .. "/front/003/0c.png", "other screens follow")
   eq(tc, true, "and are flagged too")
+  -- The title screen leaves Red's whole box out of the true-colour redraw, so
+  -- any of the Pokemon that reaches into it comes out in Red's purple.  It keeps
+  -- the grey sprite and the engine's own title palette.
+  path, tc = lookup("FIXMON_C", "front", "title")
+  eq(path, prefix .. "/front/003/0.png", "the title screen keeps the grey frame")
+  eq(tc, false, "and is not flagged true colour")
   path = lookup("FIXMON_A", "front")
   eq(path, "tests/fixture_data/assets/fixmon_a_front.png", "an uncached species still keeps the engine's art")
 

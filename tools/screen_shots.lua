@@ -138,6 +138,16 @@ return function(game)
     return require("src.ui.HallOfFame").new(game, function() end)
   end, 240)
   show("oak", function() return require("src.ui.OakSpeech").new(game, function() end) end, 400)
-  show("title", function() return require("src.ui.TitleState").new(game, {}) end, 300)
+  show("title", function()
+    local state = require("src.ui.TitleState").new(game, {})
+    -- CAS_TITLE_SPECIES=SCYTHER shows that Pokemon instead of the first one
+    local want = os.getenv("CAS_TITLE_SPECIES")
+    if want then
+      for i, name in ipairs(state.cycleSpecies or {}) do
+        if name == want then state.cycleIndex = i end
+      end
+    end
+    return state
+  end, 300)
   U.log("done", SPECIES)
 end

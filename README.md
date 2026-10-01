@@ -59,6 +59,9 @@ part of the mod.
   itself plays it once when a Pokemon appears.
 - After a Pokemon uses Transform, or after a Silph Scope reveals the Pokemon
   Tower ghost, that sprite holds Crystal's resting pose instead of animating.
+- The title screen draws its Pokemon in the game's own title palette, even with
+  `SPRITE COLORS` on `CRYSTAL`, because the engine recolours any of the
+  Pokemon that reaches into Red's part of the screen.
 - Party icons are drawn in the game's colours. Crystal colours its icons with
   a separate set of palettes that the engine does not apply to icons.
 - Only front pictures are replaced outside battle. Back pictures on other
