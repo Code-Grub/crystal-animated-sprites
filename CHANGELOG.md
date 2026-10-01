@@ -1,9 +1,9 @@
 # Changelog
 
-## 0.4.1
+## 0.4.2
 
 ### Fixed
-- On the title screen, a Pokemon whose art reaches into Red's box, such as Scyther's claws, turned purple there when `SPRITE COLORS` was `CRYSTAL`. The engine leaves Red's whole box out of its true-colour redraw. The title screen now keeps the grey sprite and the game's own title palette, whatever `SPRITE COLORS` says.
+- On the title screen, a Pokemon whose art reaches toward Red, such as Scyther's claws, turned purple there when `SPRITE COLORS` was `CRYSTAL`. The engine leaves Red's whole bounding box out of its true-colour redraw. The mod now leaves out only the pixels Red really covers, so the whole Pokemon is drawn in Crystal's colours and Red is unchanged.
 
 ## 0.4.0
 

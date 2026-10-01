@@ -10,7 +10,7 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest", "status", "screenanim", "palette", "icons", "iconshim", "specks", "specks_back", "edits" }
+                     "playback", "swap", "ingest", "status", "screenanim", "palette", "icons", "iconshim", "titlemask", "specks", "specks_back", "edits" }
   local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "palette", "icons", "specks", "specks_back", "edits" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
@@ -38,6 +38,7 @@ return function(mod)
   local Status = need("status")
   local ScreenAnim = need("screenanim")
   local IconShim = need("iconshim")
+  local TitleMask = need("titlemask")
 
   local romBytes, readErr = mod.imports:read("crystal_rom", 0, 2097152)
   if not romBytes then
@@ -207,12 +208,10 @@ return function(mod)
   -- Returns the path to serve and whether it is the Crystal-colour copy.  The
   -- engine is told about the second through ctx.trueColor, which is how it
   -- knows to leave a picture out of its own palettes.
-  -- grey: serve the grey copy whatever SPRITE COLORS says, for a screen whose
-  -- palette handling cannot take true-colour art
-  local function resolve(dex, side, seconds, grey)
+  local function resolve(dex, side, seconds)
     local meta = ready[dex] and not failed[dex] and cache:meta(dex)
     if not meta then return nil end
-    local color = not grey and meta.colors and mod.options:get("sprite_colors") == "crystal"
+    local color = meta.colors and mod.options:get("sprite_colors") == "crystal"
     if side == "back" then
       if mod.options:get("back_sprites") == "front" then
         return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), true, color), color
@@ -248,10 +247,7 @@ return function(mod)
       pollJobs()
       local dex = dexOf(ctx.data, ctx.species)
       local path, color
-      -- The title screen leaves Red's whole box out of the true-colour redraw,
-      -- so any of the Pokemon that reaches into it turns Red's purple.  It
-      -- keeps the grey sprite and the engine's own title palette.
-      if dex then path, color = resolve(dex, "front", nil, ctx.kind == "title") end
+      if dex then path, color = resolve(dex, "front", nil) end
       if path then
         if color then ctx.trueColor = true end
         return path
@@ -367,6 +363,80 @@ return function(mod)
         if view then return original(view, mon, ...) end
       end
       return original(game, mon, ...)
+    end
+  end
+
+  -- The title screen draws Red over the Pokemon.  For a true-colour Pokemon the
+  -- engine redraws its rectangle unshaded, which would put Red's art there in
+  -- raw grey, so it leaves Red's whole bounding box out.  Whatever part of the
+  -- Pokemon reaches into that box but not onto Red's own pixels then takes Red's
+  -- palette (Scyther's claws turn purple).  This replaces the engine's marks
+  -- with ones that leave out only the pixels Red really covers.  If anything
+  -- about the screen is not what it expects, the engine's marks go through
+  -- unchanged.
+  local okTitle, TitleState = pcall(require, "src.ui.TitleState")
+  if okTitle and type(TitleState) == "table" and type(TitleState.draw) == "function" then
+    local original = TitleState.__casDraw or TitleState.draw
+    TitleState.__casDraw = original
+    local redRows = {}
+    local function rowsFor(path)
+      local rows = redRows[path]
+      if rows == nil then
+        local ok, data = pcall(require("src.render.Assets").imageData, path)
+        rows = false
+        if ok and data then
+          local w, h = data:getDimensions()
+          rows = TitleMask.rowRuns(function(x, y)
+            local _, _, _, a = data:getPixel(x, y)
+            return a > 0.5
+          end, w, h)
+          rows.w, rows.h = w, h
+        end
+        redRows[path] = rows
+      end
+      return rows or nil
+    end
+
+    -- the rects of the Pokemon the engine just marked, as the Pokemon's own
+    -- rectangle minus Red's pixels; nil when the screen is not as expected
+    local function monRects(self, marks)
+      local sprite = self:currentSprite()
+      local rows = self.player and self.playerPath and rowsFor(self.playerPath)
+      if not (sprite and rows and self.monOffset) then return nil end
+      local w, h = sprite:getDimensions()
+      local x, y = 40 + math.floor((56 - w) / 2) + self.monOffset, 136 - h
+      for _, m in ipairs(marks) do
+        if m[1] < x or m[2] < y or m[1] + m[3] > x + w or m[2] + m[4] > y + h then return nil end
+      end
+      local placements = {}
+      if self.playerQuads and self.ballQuad then
+        for _, part in ipairs(self.playerQuads) do
+          local qx, qy, qw, qh = part[1]:getViewport()
+          placements[#placements + 1] = { runs = rows, qx = qx, qy = qy, qw = qw, qh = qh,
+            x = 82 + part[2], y = 80 + part[3] }
+        end
+        local qx, qy, qw, qh = self.ballQuad:getViewport()
+        placements[#placements + 1] = { runs = rows, qx = qx, qy = qy, qw = qw, qh = qh,
+          x = 82, y = self.ballY }
+      else
+        placements[1] = { runs = rows, qx = 0, qy = 0, qw = rows.w, qh = rows.h, x = 82, y = 80 }
+      end
+      return TitleMask.freeRects({ x, y, w, h }, placements)
+    end
+
+    TitleState.draw = function(self, ...)
+      local P = require("src.render.PaletteFX")
+      local realMark, marks = P.markTrueColor, {}
+      P.markTrueColor = function(x, y, w, h) marks[#marks + 1] = { x, y, w, h } end
+      local ok, err = pcall(original, self, ...)
+      P.markTrueColor = realMark
+      local rects
+      if ok and #marks > 0 then
+        local good, result = pcall(monRects, self, marks)
+        if good then rects = result else warnOnce("title", "title screen: %s", tostring(result)) end
+      end
+      for _, r in ipairs(rects or marks) do realMark(r[1], r[2], r[3], r[4]) end
+      if not ok then error(err, 0) end
     end
   end
 
