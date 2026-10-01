@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+### Added
+- A DIAGNOSTICS option. When on, the top of the battle screen shows the mod version, the cache it is using, how many species are ready or failed, whether the background decode is running, and whether each battler's sprite comes from this mod or the game, plus the latest error. It is meant for bug reports on devices where the save folder cannot be opened, such as Android. It is off by default.
+
 ## 0.1.2
 
 ### Fixed

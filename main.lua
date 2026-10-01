@@ -10,7 +10,7 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest", "specks", "specks_back", "edits" }
+                     "playback", "swap", "ingest", "status", "specks", "specks_back", "edits" }
   local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back", "edits" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
@@ -35,6 +35,7 @@ return function(mod)
   end
   local Rom, Anim, Cache = need("rom"), need("anim"), need("cache")
   local Playback, Swap, Ingest = need("playback"), need("swap"), need("ingest")
+  local Status = need("status")
 
   local romBytes, readErr = mod.imports:read("crystal_rom", 0, 2097152)
   if not romBytes then
@@ -54,9 +55,11 @@ return function(mod)
   if not cache:valid() then cache:begin() end
 
   local warned = {}
+  local lastErr -- newest problem, shown by the DIAGNOSTICS readout
   local function warnOnce(key, fmt, ...)
     if warned[key] then return end
     warned[key] = true
+    lastErr = fmt:format(...)
     mod.log:warn(fmt, ...)
   end
 
@@ -153,12 +156,14 @@ return function(mod)
   local function consume(job, result)
     if result.status ~= "ok" then
       mod.log:error("decode of species %d-%d failed: %s", job.first, job.last, tostring(result.err))
+      lastErr = ("decode %d-%d: %s"):format(job.first, job.last, tostring(result.err))
       for dex = job.first, job.last do failed[dex] = true end
       return
     end
     for dex, message in pairs(result.result.errors) do
       failed[dex] = true
       mod.log:warn("species %d not decoded: %s", dex, tostring(message))
+      lastErr = ("species %d: %s"):format(dex, tostring(message))
     end
     ingest:enqueue(result.result.species)
   end
@@ -239,6 +244,38 @@ return function(mod)
     return next(game, dt)
   end, 930)
 
+  -- The DIAGNOSTICS readout.  Phones keep the save folder out of reach, so
+  -- the state a bug report needs is drawn on the battle instead of logged.
+  local function sideInfo(screen, battler, side)
+    local dex = battler and battler.mon and dexOf(screen.data, battler.mon.species)
+    if not dex then return false end
+    return { dex = dex, source = resolve(dex, side, nil) and "cas" or "game" }
+  end
+
+  local function drawStatus(screen)
+    local Font = require("src.render.Font")
+    local readyCount, failedCount = 0, 0
+    for dex = 1, LAST do
+      if ready[dex] then readyCount = readyCount + 1 end
+    end
+    for dex = 1, LAST do
+      if failed[dex] then failedCount = failedCount + 1 end
+    end
+    local lines = Status.lines({
+      version = mod.manifest and mod.manifest.version or "?",
+      stamp = cache.stamp, ready = readyCount, failed = failedCount,
+      running = #running, waiting = #pending,
+      jobs = (mod.job and mod.job:available()) and true or false,
+      enemy = sideInfo(screen, screen.enemy, "front"),
+      player = sideInfo(screen, screen.player, "back"),
+      err = lastErr,
+    })
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("fill", 0, 0, 160, #lines * 8 + 2)
+    for i, line in ipairs(lines) do Font.draw(line, 0, (i - 1) * 8 + 1) end
+    love.graphics.setColor(1, 1, 1, 1)
+  end
+
   mod.hooks:wrap("battle.overlay", function(next, screen)
     local ok, err = pcall(function()
       pollJobs()
@@ -248,6 +285,10 @@ return function(mod)
     end)
     frozen = nil
     if not ok then warnOnce("overlay", "sprite swap failed: %s", tostring(err)) end
+    if mod.options:get("diagnostics") == "on" then
+      local drew, drawErr = pcall(drawStatus, screen)
+      if not drew then warnOnce("status", "diagnostics failed: %s", tostring(drawErr)) end
+    end
     return next(screen)
   end, 930)
 end

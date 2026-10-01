@@ -36,6 +36,17 @@ return function(game)
   -- override the saved option.
   if os.getenv("CAS_BG") then game.save.options.battleBg = os.getenv("CAS_BG") end
 
+  -- CAS_DIAG=1 turns the DIAGNOSTICS readout on for this run (and back off
+  -- after), so it can be photographed.
+  local diag = os.getenv("CAS_DIAG")
+  if diag then
+    require("src.mods.LauncherMods").setModOptions("crystal_animated_sprites", { diagnostics = "on" })
+    game.save.options.modOptions = game.save.options.modOptions or {}
+    game.save.options.modOptions.crystal_animated_sprites =
+      game.save.options.modOptions.crystal_animated_sprites or {}
+    game.save.options.modOptions.crystal_animated_sprites.diagnostics = "on"
+  end
+
   -- CAS_FIELD=gray|dark repaints the battle field (the white 160x144 fill),
   -- standing in for a mod that replaces the backdrop.  Any opaque white in a
   -- sprite then shows up as a rectangle around it.

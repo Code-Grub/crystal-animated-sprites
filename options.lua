@@ -9,4 +9,13 @@ return {
     default = "crystal",
     choices = { { "CRYSTAL", "crystal" }, { "ANIMATED FRONT", "front" } },
   },
+  -- Draws the cache and job state over the battle, for bug reports on devices
+  -- whose save folder cannot be opened.
+  {
+    key = "diagnostics",
+    type = "choice",
+    label = "DIAGNOSTICS",
+    default = "off",
+    choices = { { "OFF", "off" }, { "ON", "on" } },
+  },
 }
