@@ -1,6 +1,6 @@
 package.path = "./?.lua;" .. package.path
 local H = require("tests.harness")
-local DexAnim = H.need("dexanim")
+local ScreenAnim = H.need("screenanim")
 
 -- frame number is whole seconds elapsed, so a test reads at a glance
 local function make(over)
@@ -13,18 +13,18 @@ local function make(over)
     end,
   }
   for k, v in pairs(over or {}) do deps[k] = v end
-  return DexAnim.new(deps), calls
+  return ScreenAnim.new(deps), calls
 end
 
 local function screen() return { picDelay = 0, sprite = "vanilla", species = "X" } end
 
-H.test("dexanim: nothing happens while no entry screen is up", function()
+H.test("screenanim: nothing happens while no entry screen is up", function()
   local a, calls = make()
   a:tick(nil, 0)
   H.eq(calls.load, 0)
 end)
 
-H.test("dexanim: the picture is left alone until the entry shows it", function()
+H.test("screenanim: the picture is left alone until the entry shows it", function()
   local a = make()
   local s = screen()
   s.picDelay = 12
@@ -32,7 +32,7 @@ H.test("dexanim: the picture is left alone until the entry shows it", function()
   H.eq(s.sprite, "vanilla")
 end)
 
-H.test("dexanim: frames follow the time since the picture appeared", function()
+H.test("screenanim: frames follow the time since the picture appeared", function()
   local a = make()
   local s = screen()
   a:tick(s, 100)
@@ -43,7 +43,7 @@ H.test("dexanim: frames follow the time since the picture appeared", function()
   H.eq(s.sprite, "img:frame3")
 end)
 
-H.test("dexanim: the clock starts when the picture appears, not when the screen opens", function()
+H.test("screenanim: the clock starts when the picture appears, not when the screen opens", function()
   local a = make()
   local s = screen()
   s.picDelay = 30
@@ -56,7 +56,7 @@ H.test("dexanim: the clock starts when the picture appears, not when the screen 
   H.eq(s.sprite, "img:frame1")
 end)
 
-H.test("dexanim: an unchanged frame is not loaded again", function()
+H.test("screenanim: an unchanged frame is not loaded again", function()
   local a, calls = make()
   local s = screen()
   a:tick(s, 0)
@@ -65,7 +65,7 @@ H.test("dexanim: an unchanged frame is not loaded again", function()
   H.eq(calls.load, 1)
 end)
 
-H.test("dexanim: a new entry screen restarts the clock", function()
+H.test("screenanim: a new entry screen restarts the clock", function()
   local a = make()
   local first = screen()
   a:tick(first, 10)
@@ -76,7 +76,7 @@ H.test("dexanim: a new entry screen restarts the clock", function()
   H.eq(second.sprite, "img:frame0")
 end)
 
-H.test("dexanim: leaving the screen and coming back restarts it", function()
+H.test("screenanim: leaving the screen and coming back restarts it", function()
   local a = make()
   local s = screen()
   a:tick(s, 0)
@@ -87,7 +87,7 @@ H.test("dexanim: leaving the screen and coming back restarts it", function()
   H.eq(s.sprite, "img:frame0")
 end)
 
-H.test("dexanim: a species with nothing cached keeps the engine's picture", function()
+H.test("screenanim: a species with nothing cached keeps the engine's picture", function()
   local a, calls = make({ pathFor = function() return nil end })
   local s = screen()
   a:tick(s, 0)
@@ -96,7 +96,7 @@ H.test("dexanim: a species with nothing cached keeps the engine's picture", func
   H.eq(calls.load, 0)
 end)
 
-H.test("dexanim: a frame that fails to load keeps the last good picture and is retried", function()
+H.test("screenanim: a frame that fails to load keeps the last good picture and is retried", function()
   local fail = true
   local a, calls = make({ load = function(path)
     if fail then return nil end
@@ -110,7 +110,7 @@ H.test("dexanim: a frame that fails to load keeps the last good picture and is r
   H.eq(s.sprite, "img:frame0")
 end)
 
-H.test("dexanim: Battle Art's remembered picture follows, or it puts the old one back", function()
+H.test("screenanim: Battle Art's remembered picture follows, or it puts the old one back", function()
   local a = make()
   local s = screen()
   s.__battleArtOriginalSprite = "vanilla"
@@ -121,9 +121,23 @@ H.test("dexanim: Battle Art's remembered picture follows, or it puts the old one
   H.eq(s.sprite, "img:frame2")
 end)
 
-H.test("dexanim: a screen without that field does not grow one", function()
+H.test("screenanim: a screen without that field does not grow one", function()
   local a = make()
   local s = screen()
   a:tick(s, 0)
   H.eq(s.__battleArtOriginalSprite, nil)
+end)
+
+H.test("screenanim: the stats screen's opening flash holds the clock back too", function()
+  local a = make()
+  local s = screen()
+  s.picDelay = nil
+  s.whiteHold = 20
+  a:tick(s, 10)
+  H.eq(s.sprite, "vanilla")
+  s.whiteHold = 0
+  a:tick(s, 11)
+  H.eq(s.sprite, "img:frame0")
+  a:tick(s, 12)
+  H.eq(s.sprite, "img:frame1")
 end)

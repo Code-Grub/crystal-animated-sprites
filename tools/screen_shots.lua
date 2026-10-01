@@ -48,6 +48,28 @@ return function(game)
     U.log("path", kind, tostring(path))
   end
 
+  -- CAS_SUMFRAMES=n: the same for the stats screen.
+  local sumFrames = tonumber(os.getenv("CAS_SUMFRAMES") or "0")
+  if sumFrames > 0 then
+    local Runtime = require("src.mods.Runtime")
+    local state = require("src.ui.Screens").push(game, "SummaryMenu", game.save.party[1])
+    U.log("summary screenId", tostring(state.screenId))
+    local function step(n)
+      for _ = 1, n do
+        Runtime.call("core.update", function() end, game, 1 / 60)
+        U.wait(1)
+      end
+    end
+    step(60)
+    for i = 1, sumFrames do
+      U.shot(game, ("%s/sumanim_%s_%02d.png"):format(DIR, SPECIES, i))
+      U.log("sumanim", i, tostring(state.sprite))
+      step(tonumber(os.getenv("CAS_GAP") or "10"))
+    end
+    game.stack:pop()
+    return
+  end
+
   -- CAS_DEXFRAMES=n: sit on the Pokedex entry and take n shots CAS_GAP frames
   -- apart, to see the picture animate.
   local dexFrames = tonumber(os.getenv("CAS_DEXFRAMES") or "0")

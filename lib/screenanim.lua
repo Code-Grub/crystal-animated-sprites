@@ -1,26 +1,27 @@
--- Animates the picture on the Pokedex entry screen.  That screen loads its
--- picture once when it opens and draws screen.sprite every frame, so this
--- swaps screen.sprite for the frame that belongs to the time since the picture
--- appeared.  Kept free of the engine: the caller says which screen is on top
+-- Animates the picture on the Pokedex entry and the stats screen.  Those
+-- screens load their picture once when they open and draw screen.sprite every
+-- frame, so this swaps screen.sprite for the frame that belongs to the time
+-- since the picture appeared.  Kept free of the engine: the caller says which screen is on top
 -- and supplies the path and image lookups.
 --
 --   deps.pathFor(screen, seconds)  frame path to show, or nil for none
 --   deps.load(path)                an image, or nil when it cannot be loaded
-local DexAnim = {}
-DexAnim.__index = DexAnim
+local ScreenAnim = {}
+ScreenAnim.__index = ScreenAnim
 
-function DexAnim.new(deps)
-  return setmetatable({ deps = deps }, DexAnim)
+function ScreenAnim.new(deps)
+  return setmetatable({ deps = deps }, ScreenAnim)
 end
 
 -- screen: the entry screen when it is the top state, otherwise nil.
-function DexAnim:tick(screen, now)
+function ScreenAnim:tick(screen, now)
   if not screen then
     self.screen = nil
     return
   end
-  -- the picture is not on show until the entry's short delay has run out
-  if (screen.picDelay or 0) > 0 then return end
+  -- the picture is not on show until the entry's short delay (picDelay) or the
+  -- stats screen's opening flash (whiteHold) has run out
+  if (screen.picDelay or 0) + (screen.whiteHold or 0) > 0 then return end
   if self.screen ~= screen then
     self.screen, self.start, self.shown = screen, now, nil
   end
@@ -40,4 +41,4 @@ function DexAnim:tick(screen, now)
   end
 end
 
-return DexAnim
+return ScreenAnim

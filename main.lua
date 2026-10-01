@@ -10,7 +10,7 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest", "status", "dexanim", "specks", "specks_back", "edits" }
+                     "playback", "swap", "ingest", "status", "screenanim", "specks", "specks_back", "edits" }
   local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "specks", "specks_back", "edits" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
@@ -36,7 +36,7 @@ return function(mod)
   local Rom, Anim, Cache = need("rom"), need("anim"), need("cache")
   local Playback, Swap, Ingest = need("playback"), need("swap"), need("ingest")
   local Status = need("status")
-  local DexAnim = need("dexanim")
+  local ScreenAnim = need("screenanim")
 
   local romBytes, readErr = mod.imports:read("crystal_rom", 0, 2097152)
   if not romBytes then
@@ -256,31 +256,38 @@ return function(mod)
     end,
   })
 
-  -- The Pokedex entry screen loads its picture once, so it is animated by
-  -- swapping the image it draws.  Images are kept by path: a species has a
-  -- handful of frames and the entry loops over them.
-  local dexImages = {}
-  local dexAnim = DexAnim.new({
+  -- The Pokedex entry and the stats screen load their picture once, so they
+  -- are animated by swapping the image they draw.  Images are kept by path: a
+  -- species has a handful of frames and the screen loops over them.
+  --
+  -- The screens are recognised by the id the engine stamps on every screen it
+  -- builds, not by their class, so a UI mod that wraps or replaces one through
+  -- the screen registry still counts as long as it draws screen.sprite.
+  local ANIMATED = { DexEntryMenu = "DEX", SummaryMenu = "SUM" }
+  local function speciesOf(screen)
+    if screen.screenId == "SummaryMenu" then return screen.mon and screen.mon.species end
+    return screen.species
+  end
+
+  local screenImages = {}
+  local screenAnim = ScreenAnim.new({
     pathFor = function(screen, seconds)
-      local dex = dexOf(screen.game and screen.game.data, screen.species)
+      local dex = dexOf(screen.game and screen.game.data, speciesOf(screen))
       local meta = dex and ready[dex] and not failed[dex] and cache:meta(dex)
       return meta and cache:framePath(dex, Playback.frameAt(meta.timeline, seconds)) or nil
     end,
     load = function(path)
-      local image = dexImages[path]
+      local image = screenImages[path]
       if image then return image end
       local ok, loaded = pcall(love.graphics.newImage, path)
       if ok and loaded then
-        dexImages[path] = loaded
+        screenImages[path] = loaded
         return loaded
       end
       return nil
     end,
   })
 
-  -- The entry is recognised by the id the engine stamps on every screen it
-  -- builds, not by its class, so a UI mod that wraps or replaces the screen
-  -- through the screen registry still counts as long as it draws screen.sprite.
   -- the newest distinct screen ids on top of the stack, for the readout
   local recentScreens, dexNote = {}, nil
   local function noteScreen(top)
@@ -290,19 +297,20 @@ return function(mod)
     recentScreens[4] = nil
   end
 
-  local function tickDexEntry(game)
+  local function tickScreens(game)
     local top = game and game.stack and game.stack:top()
     noteScreen(top)
-    if top and top.screenId == "DexEntryMenu" and not (top.species and top.sprite) then
+    local tag = top and ANIMATED[top.screenId]
+    if tag and not (speciesOf(top) and top.sprite) then
       -- shown in the DIAGNOSTICS readout, which phones can read
-      warnOnce("dexshape", "dex entry: species=%s sprite=%s", tostring(top.species), tostring(top.sprite))
+      warnOnce("shape" .. tag, "%s screen: species=%s sprite=%s", tag,
+        tostring(speciesOf(top)), tostring(top.sprite))
+      tag = nil
     end
-    if top and not (top.screenId == "DexEntryMenu" and top.species and top.sprite) then
-      top = nil
-    end
-    dexAnim:tick(top, (love and love.timer) and love.timer.getTime() or 0)
+    if not tag then top = nil end
+    screenAnim:tick(top, (love and love.timer) and love.timer.getTime() or 0)
     if top then
-      dexNote = "DEX " .. (top.sprite and "ON" or "NO IMG") .. " " .. (dexAnim.shown and "SHOWN" or "NONE")
+      dexNote = tag .. " " .. (top.sprite and "ON" or "NO IMG") .. " " .. (screenAnim.shown and "SHOWN" or "NONE")
     end
   end
 
@@ -310,8 +318,8 @@ return function(mod)
   -- already cached by the first battle instead of being written at its start.
   mod.hooks:wrap("core.update", function(next, game, dt)
     pollJobs()
-    local ok, err = pcall(tickDexEntry, game)
-    if not ok then warnOnce("dexanim", "pokedex animation failed: %s", tostring(err)) end
+    local ok, err = pcall(tickScreens, game)
+    if not ok then warnOnce("screenanim", "screen animation failed: %s", tostring(err)) end
     return next(game, dt)
   end, 930)
 

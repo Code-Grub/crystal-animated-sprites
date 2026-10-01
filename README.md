@@ -21,8 +21,8 @@ part of the mod.
 - Crystal's picture, at its resting frame, also replaces the front sprite on
   the other screens that show a Pokemon: the status screen, the Pokedex, the
   evolution screen, the Hall of Fame, the title screen, Prof. Oak's intro,
-  trades and the credits. The Pokedex entry plays the animation; the other
-  screens show the resting frame.
+  trades and the credits. The Pokedex entry and the status screen play the
+  animation; the other screens show the resting frame.
 - Options:
   - `BACK SPRITES`, for your own Pokemon. `CRYSTAL` (default) is Crystal's back
     sprite. `ANIMATED FRONT` is the animated front sprite, mirrored.

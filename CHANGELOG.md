@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.2.3
+## 0.3.0
+
+### Added
+- The stats screen now plays the animation, like the Pokedex entry. The other screens that show a Pokemon still use the resting frame.
 
 ### Fixed
 - The Pokedex entry did not animate with the Battle Art Voxel mod. That mod puts back the picture it remembered when the entry opened on every draw, which undid each frame. The animation now updates what it remembers as well.
