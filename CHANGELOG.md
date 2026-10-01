@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3
+
+### Fixed
+- Thin horizontal lines could run through the title screen's Pokemon on a screen whose scale is not a whole number, because the engine redraws the Pokemon in separate rectangles and the joins between them can round apart. Neighbouring rectangles now overlap by one row, only over pixels that are free, so Red is still never redrawn.
+
 ## 0.4.2
 
 ### Fixed

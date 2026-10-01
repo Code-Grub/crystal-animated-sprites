@@ -40,7 +40,8 @@ H.test("titlemask: solid art over part of the rect frees only the rest", functio
   local runs = runsOf({ "####", "####" })
   local free = TitleMask.freeRects({ 10, 20, 8, 4 },
     { { runs = runs, qx = 0, qy = 0, qw = 4, qh = 2, x = 12, y = 21 } })
-  H.eq(show(free), "10,20,8,1 10,21,2,2 10,23,8,1 16,21,2,2")
+  -- the narrow runs grow into the full rows above and below them
+  H.eq(show(free), "10,20,2,4 10,20,8,1 10,23,8,1 16,20,2,4")
 end)
 
 H.test("titlemask: a transparent gap inside the art stays free", function()
@@ -81,4 +82,54 @@ H.test("titlemask: several placements all hide the mon", function()
     { runs = runs, qx = 0, qy = 0, qw = 2, qh = 1, x = 4, y = 0 },
   })
   H.eq(show(free), "2,0,2,1")
+end)
+
+H.test("titlemask: where the free span narrows, the narrow rect grows into the wider row", function()
+  -- row 0 is free across 0..5, row 1 only across 0..2 (Red covers the rest).
+  -- Redrawn as two abutting rects the join can show as a hairline when the
+  -- screen is scaled, so the narrow rect grows one row up to overlap.
+  local runs = runsOf({ "......", "...###" })
+  local free = TitleMask.freeRects({ 0, 0, 6, 2 },
+    { { runs = runs, qx = 0, qy = 0, qw = 6, qh = 2, x = 0, y = 0 } })
+  H.eq(show(free), "0,0,3,2 0,0,6,1")
+end)
+
+H.test("titlemask: a rect that widens grows the narrow one above it downward", function()
+  local runs = runsOf({ "...###", "......" })
+  local free = TitleMask.freeRects({ 0, 0, 6, 2 },
+    { { runs = runs, qx = 0, qy = 0, qw = 6, qh = 2, x = 0, y = 0 } })
+  H.eq(show(free), "0,0,3,2 0,1,6,1")
+end)
+
+H.test("titlemask: spans that only partly overlap get a short rect over the shared part", function()
+  -- row 0 free 0..3, row 1 free 2..5: neither contains the other
+  local runs = runsOf({ "....##", "##...." })
+  local free = TitleMask.freeRects({ 0, 0, 6, 2 },
+    { { runs = runs, qx = 0, qy = 0, qw = 6, qh = 2, x = 0, y = 0 } })
+  H.eq(show(free), "0,0,4,1 2,0,2,2 2,1,4,1")
+end)
+
+H.test("titlemask: a grown rect never covers a pixel Red draws", function()
+  local runs = runsOf({ "......", "...###" })
+  local free = TitleMask.freeRects({ 0, 0, 6, 2 },
+    { { runs = runs, qx = 0, qy = 0, qw = 6, qh = 2, x = 0, y = 0 } })
+  for _, r in ipairs(free) do
+    for y = r[2], r[2] + r[4] - 1 do
+      for x = r[1], r[1] + r[3] - 1 do
+        H.eq(y == 1 and x >= 3, false, "rect " .. r[1] .. "," .. r[2] .. " covers Red's pixel at " .. x .. "," .. y)
+      end
+    end
+  end
+end)
+
+H.test("titlemask: rows with an unchanged span need no bridge", function()
+  local free = TitleMask.freeRects({ 0, 0, 5, 6 }, {})
+  H.eq(#free, 1)
+end)
+
+H.test("titlemask: a narrow band between two wider rows grows both ways", function()
+  local runs = runsOf({ "......", "...###", "......" })
+  local free = TitleMask.freeRects({ 0, 0, 6, 3 },
+    { { runs = runs, qx = 0, qy = 0, qw = 6, qh = 3, x = 0, y = 0 } })
+  H.eq(show(free), "0,0,3,3 0,0,6,1 0,2,6,1")
 end)
