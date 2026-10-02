@@ -10,7 +10,7 @@ return function(mod)
   local LAST = 151
   local MAX_JOBS = 2
   local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
-                     "playback", "swap", "ingest", "status", "screenanim", "palette", "icons", "iconshim", "titlemask", "specks", "specks_back", "edits" }
+                     "playback", "swap", "attack", "ingest", "status", "screenanim", "palette", "icons", "iconshim", "titlemask", "specks", "specks_back", "edits" }
   local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "palette", "icons", "specks", "specks_back", "edits" }
 
   -- A mod cannot require its own files: siblings load through mod:read +
@@ -35,6 +35,7 @@ return function(mod)
   end
   local Rom, Anim, Cache = need("rom"), need("anim"), need("cache")
   local Playback, Swap, Ingest = need("playback"), need("swap"), need("ingest")
+  local Attack = need("attack")
   local Status = need("status")
   local ScreenAnim = need("screenanim")
   local IconShim = need("iconshim")
@@ -505,13 +506,14 @@ return function(mod)
     local ok, err = pcall(function()
       pollJobs()
       local now = (love and love.timer) and love.timer.getTime() or 0
-      -- a move's animation starting is the moment its user attacks; the engine
-      -- clears animPlaying between moves, so each one is a fresh rising edge
-      local playing = screen.animPlaying and true or false
-      if playing and not attacking[screen] and mod.options:get("attack_animation") ~= "off" then
-        swap:restart(screen.animAttackerIsPlayer and screen.player or screen.enemy, now)
+      -- the moment a Pokemon uses a move, which the engine reports whether or not
+      -- the player has battle animations on
+      local state = attacking[screen]
+      if not state then state = {} attacking[screen] = state end
+      local attacker = Attack.update(screen, state, now)
+      if attacker and mod.options:get("attack_animation") ~= "off" then
+        swap:restart(attacker, now)
       end
-      attacking[screen] = playing
       swap:tick(screen, screen.enemy, "front", now)
       swap:tick(screen, screen.player, "back", now)
     end)
