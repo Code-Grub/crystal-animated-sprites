@@ -108,6 +108,30 @@ alongside `crystal_animated_sprites_with_shiny_visuals`, `gen2_shiny_visuals`,
 Shiny palettes, the sparkle entrance, the delayed cry and the sparkle sound are
 planned for a later version.
 
+## More mods by Code-Grub
+
+Other mods for the Gen1Recomp project. Click a card to open its page.
+
+<table>
+  <tr>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/Code-Grub/bills-pc-plus"><img src="https://github.com/Code-Grub/bills-pc-plus/raw/master/images/thumbnail.png" width="128" alt="Bill's PC+"/></a><br/>
+      <a href="https://github.com/Code-Grub/bills-pc-plus"><b>Bill's PC+</b></a><br/>
+      <sub>Free box paging, grab-and-place rearranging, and an inline art and stats panel.</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/Code-Grub/pokebag-plus"><img src="https://github.com/Code-Grub/pokebag-plus/raw/master/images/thumbnail.png" width="128" alt="PokeBag+"/></a><br/>
+      <a href="https://github.com/Code-Grub/pokebag-plus"><b>PokeBag+</b></a><br/>
+      <sub>Four Gen 2 pockets, TM and HM move names, and an item preview window.</sub>
+    </td>
+    <td align="center" valign="top" width="33%">
+      <a href="https://github.com/Code-Grub/pokegear-menu"><img src="https://github.com/Code-Grub/pokegear-menu/raw/master/images/thumbnail.png" width="128" alt="PokéGear Menu"/></a><br/>
+      <a href="https://github.com/Code-Grub/pokegear-menu"><b>PokéGear Menu</b></a><br/>
+      <sub>A handheld START menu with a grid of apps, drawn in full colour.</sub>
+    </td>
+  </tr>
+</table>
+
 ## For developers
 
 Everything is plain Lua with no dependencies. The decoder lives in `lib/`, and
