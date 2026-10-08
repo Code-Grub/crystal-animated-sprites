@@ -229,6 +229,57 @@ do
   run.release()
 end
 
+-- 4b. A shiny Pokemon is the same picture in Crystal's shiny colours.  The hook
+--     sees the mon, so a shiny gets the shiny copy and everyone else, and every
+--     lookup with no mon at all (the Pokedex, the title), keeps the normal one.
+do
+  local fs = makeFs()
+  seed(fs, realStamp, 3, 3)
+  local run, Data = load(fs)
+  local prefix = "mod_cache/" .. ID .. "/" .. realStamp
+  local function lookup(species, side, kind, mon)
+    local path, trueColor = Sprites.path(Data, species, side, { kind = kind or "battle", mon = mon })
+    return path, trueColor
+  end
+  local SHINY_DVS = { attack = 15, defense = 10, speed = 10, special = 10 }
+  local PLAIN_DVS = { attack = 8, defense = 8, speed = 8, special = 8 }
+
+  run.loader.modOptions[ID] = { sprite_colors = "crystal", back_sprites = "crystal" }
+  local path, tc = lookup("FIXMON_C", "front", "battle", { shiny = true })
+  eq(path, prefix .. "/front/003/0cs.png", "a mon flagged shiny gets the shiny frame")
+  eq(tc, true, "and it is flagged true colour")
+  path = lookup("FIXMON_C", "front", "battle", { dvs = SHINY_DVS })
+  eq(path, prefix .. "/front/003/0cs.png", "shiny DVs count as shiny, the way the shiny mods test it")
+  path = lookup("FIXMON_C", "front", "battle", { dvs = PLAIN_DVS })
+  eq(path, prefix .. "/front/003/0c.png", "a plain mon keeps the normal colours")
+  path = lookup("FIXMON_C", "front", "battle", nil)
+  eq(path, prefix .. "/front/003/0c.png", "a lookup with no mon keeps the normal colours")
+  path = lookup("FIXMON_C", "front", "dex", nil)
+  eq(path, prefix .. "/front/003/0c.png", "the Pokedex shows the species, never a shiny")
+
+  path, tc = lookup("FIXMON_C", "back", "battle", { shiny = true })
+  eq(path, prefix .. "/back/003cs.png", "the back sprite follows for a shiny")
+  eq(tc, true, "and is flagged too")
+  path = lookup("FIXMON_C", "front", "summary", { shiny = true })
+  eq(path, prefix .. "/front/003/0cs.png", "the summary and other still screens follow")
+
+  run.loader.modOptions[ID] = { sprite_colors = "crystal", back_sprites = "front" }
+  path, tc = lookup("FIXMON_C", "back", "battle", { shiny = true })
+  eq(path, prefix .. "/front/003/0mcs.png", "ANIMATED FRONT back sprites are mirrored shiny frames")
+  eq(tc, true, "and flagged")
+
+  run.loader.modOptions[ID] = { sprite_colors = "game" }
+  path, tc = lookup("FIXMON_C", "front", "battle", { shiny = true })
+  eq(path, prefix .. "/front/003/0.png", "GAME colours serve the grey frame even for a shiny")
+  eq(tc, false, "and are not flagged true colour")
+
+  check(Data.battle_sprite_scales.cas_b003cs ~= nil and Data.battle_sprite_scales.cas_b003cs.scale == 1,
+    "the shiny back pic is registered at 1x")
+  check(Data.battle_sprite_scales.cas_f003_0cs ~= nil, "the shiny resting frame is registered at 1x")
+  check(Data.battle_sprite_scales.cas_f003_0mcs ~= nil, "the mirrored shiny frame is registered at 1x")
+  run.release()
+end
+
 -- 2. A cache left by a different ROM dump is ignored, never served.
 do
   local fs = makeFs()

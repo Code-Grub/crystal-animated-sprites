@@ -87,6 +87,7 @@ return function(mod)
     local ok, err = pcall(function()
       registerScale(("cas_b%03d"):format(dex), cache:backPath(dex))
       registerScale(("cas_b%03dc"):format(dex), cache:backPath(dex, true))
+      registerScale(("cas_b%03dcs"):format(dex), cache:backPath(dex, true, true))
       local seen = {}
       local function frame(index)
         if seen[index] then return end
@@ -95,6 +96,8 @@ return function(mod)
         registerScale(("cas_f%03d_%dm"):format(dex, index), cache:framePath(dex, index, true))
         registerScale(("cas_f%03d_%dc"):format(dex, index), cache:framePath(dex, index, false, true))
         registerScale(("cas_f%03d_%dmc"):format(dex, index), cache:framePath(dex, index, true, true))
+        registerScale(("cas_f%03d_%dcs"):format(dex, index), cache:framePath(dex, index, false, true, true))
+        registerScale(("cas_f%03d_%dmcs"):format(dex, index), cache:framePath(dex, index, true, true, true))
       end
       frame(0)
       for _, step in ipairs(Anim.timeline(Anim.script(rom, dex))) do frame(step.frame) end
@@ -207,20 +210,36 @@ return function(mod)
     return nil
   end
 
+  -- Crystal has no shiny art: a shiny is the same picture in the species'
+  -- second pair of colours, which the decode job paints into its own copies.
+  -- The test is the one the shiny mods use, the flag or DVs that read as
+  -- shiny, so all of them agree on who is.  A lookup with no mon at all (the
+  -- Pokedex, the title) is never shiny.
+  local Stats
+  local function isShiny(mon)
+    if type(mon) ~= "table" then return false end
+    if mon.shiny then return true end
+    Stats = Stats or require("src.pokemon.Stats")
+    return Stats.isShiny(mon.dvs) and true or false
+  end
+
   -- Returns the path to serve and whether it is the Crystal-colour copy.  The
   -- engine is told about the second through ctx.trueColor, which is how it
-  -- knows to leave a picture out of its own palettes.
-  local function resolve(dex, side, seconds)
+  -- knows to leave a picture out of its own palettes.  shiny picks the copy in
+  -- the shiny colours, and only means anything alongside Crystal colours: the
+  -- grey frames are coloured by the engine's own palettes, which have no shiny.
+  local function resolve(dex, side, seconds, shiny)
     local meta = ready[dex] and not failed[dex] and cache:meta(dex)
     if not meta then return nil end
     local color = meta.colors and mod.options:get("sprite_colors") == "crystal"
+    local painted = color and shiny and meta.shiny
     if side == "back" then
       if mod.options:get("back_sprites") == "front" then
-        return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), true, color), color
+        return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), true, color, painted), color
       end
-      return cache:backPath(dex, color), color
+      return cache:backPath(dex, color, painted), color
     end
-    return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), false, color), color
+    return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), false, color, painted), color
   end
 
   -- Screens that show a Pokemon without a battle (summary, Pokedex, evolution,
@@ -238,7 +257,7 @@ return function(mod)
       pollJobs()
       local dex = dexOf(ctx.data, ctx.species)
       local path, color
-      if dex then path, color = resolve(dex, ctx.side, frozen) end
+      if dex then path, color = resolve(dex, ctx.side, frozen, isShiny(ctx.mon)) end
       if path then
         if color then ctx.trueColor = true end
         return path
@@ -253,7 +272,7 @@ return function(mod)
       -- long the picture has been up and gets that moment of the animation;
       -- everyone else gets the resting frame.
       local seconds = ctx.kind == "summary" and tonumber(ctx.seconds) or nil
-      if dex then path, color = resolve(dex, "front", seconds) end
+      if dex then path, color = resolve(dex, "front", seconds, isShiny(ctx.mon)) end
       if path then
         if color then ctx.trueColor = true end
         return path
@@ -281,7 +300,9 @@ return function(mod)
       end
       return not (screen.showEnemyTrainer or screen.enemySendingOut or screen.enemyHidden)
     end,
-    pathFor = resolve,
+    pathFor = function(dex, side, seconds, mon)
+      return resolve(dex, side, seconds, isShiny(mon))
+    end,
     rebuild = function(screen, battler, _, seconds)
       BattleState = BattleState or require("src.battle.BattleState")
       -- makeBattler is pure and resolves the sprite through the engine's own
@@ -311,7 +332,10 @@ return function(mod)
   local screenAnim = ScreenAnim.new({
     pathFor = function(screen, seconds)
       local dex = dexOf(screen.game and screen.game.data, speciesOf(screen))
-      return dex and (resolve(dex, "front", seconds)) or nil
+      -- the stats screen shows one Pokemon, so it knows if it is shiny; the
+      -- Pokedex entry shows a species and never is
+      local mon = screen.screenId == "SummaryMenu" and screen.mon or nil
+      return dex and (resolve(dex, "front", seconds, isShiny(mon))) or nil
     end,
     load = function(path)
       local image = screenImages[path]
@@ -474,7 +498,7 @@ return function(mod)
   local function sideInfo(screen, battler, side)
     local dex = battler and battler.mon and dexOf(screen.data, battler.mon.species)
     if not dex then return false end
-    return { dex = dex, source = resolve(dex, side, nil) and "cas" or "game" }
+    return { dex = dex, source = resolve(dex, side, nil, isShiny(battler.mon)) and "cas" or "game" }
   end
 
   local function drawStatus(screen)

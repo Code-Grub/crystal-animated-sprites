@@ -141,6 +141,55 @@ if H.rom() then
     end
   end)
 
+  -- The shiny copies: Crystal draws a shiny with the same picture in a second
+  -- pair of colours, so each one must match its normal-colour twin pixel for
+  -- pixel (same alpha, same shape) with every colour swapped for the matching
+  -- entry of the shiny palette.
+  H.test("job: shiny copies are the colour copies repainted in the shiny palette", function()
+    local r = runJob({ rom = H.rom(), libs = libs(), first = 4, last = 4 })
+    local s = assert(r.species[4], "species 4")
+    local Rom, Palette = H.need("rom"), H.need("palette")
+    local rom = Rom.new(H.rom())
+    local normal, shiny = Palette.colors(rom, 4), Palette.colors(rom, 4, true)
+    local function key(c) return c[1] .. "," .. c[2] .. "," .. c[3] end
+    local indexOf = {}
+    for i, c in ipairs(normal) do indexOf[key(c)] = i end
+    local shinyFor = {}
+    for i, c in ipairs(shiny) do shinyFor[i] = key(c) end
+    H.eq(shinyFor[2] ~= key(normal[2]), true, "Charmander's shiny colour one differs")
+    local sets = {
+      { "front", s.colorFrames[0], s.shinyFrames and s.shinyFrames[0], s.size * 8 },
+      { "mirrored", s.colorFlipped[0], s.shinyFlipped and s.shinyFlipped[0], s.size * 8 },
+      { "back", s.colorBack, s.shinyBack, 48 },
+    }
+    for _, set in ipairs(sets) do
+      local label, plain, painted, w = set[1], set[2], set[3], set[4]
+      H.eq(type(painted), "string", label .. " has a shiny copy")
+      H.eq(painted:byte(26), 6, label .. " is colour type 6")
+      local a, b = rawScanlines(plain), rawScanlines(painted)
+      local changed = 0
+      for y = 0, w - 1 do
+        for x = 0, w - 1 do
+          local at = y * (1 + 4 * w) + 1 + 4 * x
+          local nr, ng, nb, na = a:byte(at + 1, at + 4)
+          local sr, sg, sb, sa = b:byte(at + 1, at + 4)
+          H.eq(sa, na, label .. " alpha at " .. x .. "," .. y)
+          if na == 255 then
+            local i = assert(indexOf[nr .. "," .. ng .. "," .. nb], label .. " colour is not in the palette")
+            H.eq(sr .. "," .. sg .. "," .. sb, shinyFor[i], label .. " colour at " .. x .. "," .. y)
+            if i == 2 or i == 3 then changed = changed + 1 end
+          end
+        end
+      end
+      H.eq(changed > 0, true, label .. " has coloured pixels that actually changed")
+    end
+    -- every frame has all three of its shiny pictures
+    for index in pairs(s.colorFrames) do
+      H.eq(type(s.shinyFrames[index]), "string", "shiny frame " .. index)
+      H.eq(type(s.shinyFlipped[index]), "string", "shiny mirrored frame " .. index)
+    end
+  end)
+
   -- The party icon: one grey sheet per icon shape, in the shades Red, Blue and
   -- Yellow draw object colours with, so the engine's own palettes colour it.
   H.test("job: the party icon sheet has the right shape, transparency and shades", function()

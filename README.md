@@ -43,6 +43,13 @@ part of the mod.
     with the mod version, which cache it is using, how many species are ready,
     and whether each sprite comes from this mod. It is for bug reports on
     devices where the save folder cannot be opened, such as Android.
+- Shiny Pokemon are drawn in Crystal's shiny colours, and animate like any
+  other. Crystal has no separate shiny art: a shiny is the same picture in a
+  second pair of colours for each species, and this mod reads that pair from
+  your ROM. It works wherever the sprite is a particular Pokemon (battles, the
+  status screen, Bill's PC Plus) and follows `SPRITE COLORS`, so it needs
+  `CRYSTAL` and the game's COLORS setting on ADVANCED. The Pokedex shows the
+  species, so it never shows a shiny.
 - The sprites have transparent backgrounds, so they work with mods that replace
   the battle background. Gaps that are really see-through are transparent too, and many sprites were
   checked and touched up by hand so that white details that belong stay solid.
@@ -78,8 +85,8 @@ part of the mod.
 - Only front pictures are replaced outside battle. Back pictures on other
   screens (the Hall of Fame's back pass) and trainer pictures keep their
   usual art, because those screens are laid out for the original sizes.
-- The built sprites take about 30 MB, because both the Crystal-colour and the
-  game-colour versions are kept, so changing `SPRITE COLORS` is instant and
+- The built sprites take about 45 MB, because the game-colour, Crystal-colour
+  and shiny versions are all kept, so changing `SPRITE COLORS` is instant and
   needs no rebuild. A mod update that changes the sprites builds a new set, and
   the old one is left in the mod's cache folder.
 - Sprites are rebuilt on their own if you swap the ROM for a different dump.
@@ -105,8 +112,8 @@ alongside `crystal_animated_sprites_with_shiny_visuals`, `gen2_shiny_visuals`,
 
 ## Not included yet
 
-Shiny palettes, the sparkle entrance, the delayed cry and the sparkle sound are
-planned for a later version.
+The sparkle entrance, the delayed cry and the sparkle sound are planned for a
+later version.
 
 ## More mods by Code-Grub
 

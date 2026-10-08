@@ -14,8 +14,12 @@ end
 
 -- { white, colour one, colour two, black }, each { r, g, b } in 0..255.
 -- dex is the national dex number, 1..251.
-function Palette.colors(rom, dex)
+--
+-- shiny asks for the species' second pair, the four bytes after the normal one.
+-- Crystal has no shiny art: a shiny is the same picture in those colours.
+function Palette.colors(rom, dex, shiny)
   local base = Rom.offset(A.pokemonPalettes.bank, A.pokemonPalettes.addr) + 8 * dex
+  if shiny then base = base + 4 end
   return { { 255, 255, 255 }, colour(rom, base), colour(rom, base + 2), { 0, 0, 0 } }
 end
 

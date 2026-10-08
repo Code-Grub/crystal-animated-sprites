@@ -172,3 +172,22 @@ H.test("swap: missing battler or sprite is safe", function()
   H.eq(s:tick({}, nil, "front", 0), false)
   H.eq(s:tick({}, { mon = { species = "X" } }, "front", 0), false)
 end)
+
+-- A shiny is the same picture in other colours, so the path depends on the mon,
+-- not just the species.  The swap hands pathFor the battler's mon.
+H.test("swap: pathFor is given the battler's mon, so a shiny can get its own frames", function()
+  local seen
+  local s = make({
+    pathFor = function(_, _, t, mon)
+      seen = mon
+      return (mon and mon.shiny and "shiny" or "plain") .. math.floor(t)
+    end,
+  })
+  local plain, shiny = battler(), battler()
+  shiny.mon.shiny = true
+  s:tick({}, plain, "front", 0)
+  H.eq(seen, plain.mon, "the mon arrives as the fourth argument")
+  H.eq(plain.sprite, "img:plain0")
+  s:tick({}, shiny, "front", 0)
+  H.eq(shiny.sprite, "img:shiny0", "a shiny battler is served its own frame")
+end)

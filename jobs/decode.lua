@@ -31,7 +31,14 @@ for dex = arg.first, arg.last do
     local function encodeColor(px, alpha, width)
       return PNG.encodeRGBA(px, Pic.gaps(alpha, width), width, width, colors)
     end
+    -- and again in the species' shiny colours: Crystal has no shiny art, a
+    -- shiny is this same picture painted with the second pair
+    local shinyColors = Palette.colors(rom, dex, true)
+    local function encodeShiny(px, alpha, width)
+      return PNG.encodeRGBA(px, Pic.gaps(alpha, width), width, width, shinyColors)
+    end
     local frames, flipped, colorFrames, colorFlipped = {}, {}, {}, {}
+    local shinyFrames, shinyFlipped = {}, {}
     for index, px in pairs(r.frames) do
       local alpha = Pic.matte(px, r.width, Specks[dex])
       local hand = Edits.front[dex]
@@ -43,6 +50,8 @@ for dex = arg.first, arg.last do
       flipped[index] = encode(Pic.mirror(px, r.width), Pic.mirror(alpha, r.width), r.width)
       colorFrames[index] = encodeColor(px, alpha, r.width)
       colorFlipped[index] = encodeColor(Pic.mirror(px, r.width), Pic.mirror(alpha, r.width), r.width)
+      shinyFrames[index] = encodeShiny(px, alpha, r.width)
+      shinyFlipped[index] = encodeShiny(Pic.mirror(px, r.width), Pic.mirror(alpha, r.width), r.width)
     end
     local backAlpha = Pic.applyEdits(r.back, Pic.matte(r.back, 48, SpecksBack[dex]), 48, Edits.back[dex])
     -- the party icon: a grey sheet for the shape
@@ -62,6 +71,9 @@ for dex = arg.first, arg.last do
       colorFrames = colorFrames,
       colorFlipped = colorFlipped,
       colorBack = encodeColor(r.back, backAlpha, 48),
+      shinyFrames = shinyFrames,
+      shinyFlipped = shinyFlipped,
+      shinyBack = encodeShiny(r.back, backAlpha, 48),
     }
   end)
   if ok then species[dex] = res else errors[dex] = tostring(res) end

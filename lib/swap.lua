@@ -5,7 +5,10 @@
 --   deps.dexOf(screen, battler)          national dex 1..151, or nil
 --   deps.busy(screen, battler)           true while the engine owns the pic
 --   deps.landed(screen, battler)         optional; true once the pic is on show
---   deps.pathFor(dex, side, seconds)     the frame path to show, or nil
+--   deps.pathFor(dex, side, seconds, mon)
+--                                        the frame path to show, or nil; the
+--                                        mon is there because a shiny is the
+--                                        same picture in other colours
 --   deps.rebuild(screen, battler, key, seconds)
 --                                        an engine-built image for that frame
 --
@@ -50,7 +53,7 @@ function Swap:tick(screen, battler, side, now)
     rec.start = now
   end
   local seconds = rec.start and (now - rec.start) or nil
-  local key = deps.pathFor(dex, side, seconds)
+  local key = deps.pathFor(dex, side, seconds, battler.mon)
   if not key or key == rec.key then return false end
 
   local image = deps.rebuild(screen, battler, key, seconds)
