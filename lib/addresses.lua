@@ -17,6 +17,10 @@ return {
   menuIcons       = { bank = 0x23, addr = 0x6AC4 },
   menuIconSpecies = 251,
   iconCount       = 38,
+  -- The shiny entrance's art: AnimObjGFX entry $11 (BATTLE_ANIM_GFX_SPEED), nine
+  -- LZ-compressed 2bpp tiles.  Tiles 0 and 1 are the small sparkles and tile 6 is
+  -- one quadrant of the big star; the rest are speed lines.
+  sparkleGfx      = { bank = 0x21, addr = 0x542E },
   picBankBias     = 0x36, -- pic bank bytes are stored minus this
   kantoFramesBank = 0x35, -- frame records for species 1-151
   baseDataDimensionsOffset = 0x11,
