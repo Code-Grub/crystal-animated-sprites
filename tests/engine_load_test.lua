@@ -307,4 +307,64 @@ do
   run.release()
 end
 
+-- 5. The shiny entrance: its option, Crystal's chime as the engine's own chip
+--    program, and the wrapper on the engine's entrance cry.  Last, because the
+--    wrapper stays on BattleState once the mod has loaded.
+do
+  local BattleState = require("src.battle.BattleState")
+  local realCry = BattleState.playEntranceCry
+  local played = {}
+  -- stands in for the engine's cry, which needs audio
+  BattleState.playEntranceCry = function(_, battler) played[#played + 1] = battler return "the cry" end
+  local fs = makeFs()
+  seed(fs, realStamp, 3, 3)
+  local run, Data = load(fs)
+  eq(#run.errors, 0, "no load errors with the entrance")
+
+  local row
+  for _, r in ipairs(run.loader.optionSchemas[ID] or {}) do
+    if r.key == "shiny_entrance" then row = r end
+  end
+  check(row ~= nil, "the mod defines a shiny_entrance option")
+  eq(row and row.label, "SHINY ENTRANCE", "labelled SHINY ENTRANCE")
+  eq(row and row.default, "on", "on by default")
+
+  local chime = Data.audio and Data.audio.sfx and Data.audio.sfx.CAS_SHINE
+  check(chime ~= nil, "Crystal's chime is registered with the engine")
+  eq(chime and chime.generation, 2, "as a Gen 2 program, so the Red engine decodes it with the right commands")
+  eq(chime and chime.chip and chime.chip.engine, 2)
+  eq(chime and chime.chip and #chime.chip.blob, 27, "the 27 bytes the ROM holds")
+  eq(chime and chime.chip and chime.chip.channels[1].number, 5, "on sound channel 5")
+  eq(chime and chime.chip and chime.chip.channels[1].address, 0x4000, "at the start of its own program")
+  eq(chime and chime.chip and chime.chip.blob:byte(1), 0xDB, "starting with the duty cycle command")
+
+  local queue = {}
+  local battle = {
+    waitSfxNext = function(_, src) queue[#queue + 1] = { wait = src } end,
+    actNext = function(_, fn) queue[#queue + 1] = { act = fn } end,
+  }
+  local shiny = { mon = { species = "FIXMON_C", shiny = true } }
+  eq(BattleState.playEntranceCry(battle, shiny), nil, "a shiny's cry is not played at once")
+  eq(#played, 0, "the engine's cry has not run")
+  eq(#queue, 2, "it queues a wait for the sparkle, then the cry")
+  queue[2].act()
+  eq(#played, 1, "and the cry plays when its turn comes")
+  eq(played[1], shiny, "for the same Pokemon")
+  eq(queue[3] and queue[3].wait, "the cry", "with the queue waiting on it")
+
+  queue = {}
+  local plain = { mon = { species = "FIXMON_C" } }
+  eq(BattleState.playEntranceCry(battle, plain), "the cry", "a plain Pokemon's cry goes straight through")
+  eq(#queue, 0, "with nothing queued")
+
+  run.loader.modOptions[ID] = { shiny_entrance = "off" }
+  eq(BattleState.playEntranceCry(battle, shiny), "the cry", "OFF lets a shiny enter like any other")
+  eq(#queue, 0)
+
+  -- nothing is held when the options bag is empty again
+  run.loader.modOptions[ID] = nil
+  run.release()
+  BattleState.playEntranceCry = realCry
+end
+
 S.finish()

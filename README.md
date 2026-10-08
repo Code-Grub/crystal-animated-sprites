@@ -39,6 +39,10 @@ part of the mod.
   - `ATTACK ANIMATION`. `ON` (default) plays a Pokemon's animation again when
     it uses a move. Crystal does not do this: `OFF` plays it only when the
     Pokemon appears.
+  - `SHINY ENTRANCE`. `ON` (default) plays Crystal's entrance for a shiny
+    Pokemon: a ring of eight sparkles with Crystal's chime, and only then the
+    cry and the front animation, as in Crystal. `OFF` lets a shiny enter like
+    any other Pokemon.
   - `DIAGNOSTICS` (off by default) draws a few lines over the battle screen
     with the mod version, which cache it is using, how many species are ready,
     and whether each sprite comes from this mod. It is for bug reports on
@@ -50,6 +54,13 @@ part of the mod.
   status screen, Bill's PC Plus) and follows `SPRITE COLORS`, so it needs
   `CRYSTAL` and the game's COLORS setting on ADVANCED. The Pokedex shows the
   species, so it never shows a shiny.
+- A shiny Pokemon's entrance is Crystal's own: eight yellow sparkles appear one
+  by one on a ring around the picture, each with Crystal's chime, then the cry
+  and the front animation start. The sparkle and the chime are read from your
+  ROM like everything else, for your own Pokemon as well as the enemy's. If
+  SHINY_POKEMON is also installed, this replaces its sparkle and chime while
+  `SHINY ENTRANCE` is on, and gives them back when it is off; its colours and
+  the shiny rolls are not touched.
 - The sprites have transparent backgrounds, so they work with mods that replace
   the battle background. Gaps that are really see-through are transparent too, and many sprites were
   checked and touched up by hand so that white details that belong stay solid.
@@ -112,8 +123,8 @@ alongside `crystal_animated_sprites_with_shiny_visuals`, `gen2_shiny_visuals`,
 
 ## Not included yet
 
-The sparkle entrance, the delayed cry and the sparkle sound are planned for a
-later version.
+The screen flash and the yellow and gray palette cycle that Crystal plays under
+the sparkles are planned for a later version.
 
 ## More mods by Code-Grub
 

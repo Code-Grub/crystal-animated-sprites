@@ -39,6 +39,17 @@ return {
     default = "on",
     choices = { { "ON", "on" }, { "OFF", "off" } },
   },
+  -- ON (default) plays Crystal's entrance for a shiny Pokemon: a ring of eight
+  -- sparkles with Crystal's chime, and only then the cry and the front
+  -- animation, as Crystal does.  OFF lets a shiny enter like any other.  When
+  -- SHINY_POKEMON is also installed this replaces its intro sparkle.
+  {
+    key = "shiny_entrance",
+    type = "choice",
+    label = "SHINY ENTRANCE",
+    default = "on",
+    choices = { { "ON", "on" }, { "OFF", "off" } },
+  },
   -- Draws the cache and job state over the battle, for bug reports on devices
   -- whose save folder cannot be opened.
   {

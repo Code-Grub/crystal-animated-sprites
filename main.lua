@@ -9,7 +9,7 @@ return function(mod)
   local MOD_ID = "crystal_animated_sprites"
   local LAST = 151
   local MAX_JOBS = 2
-  local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache",
+  local ALL_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "cache", "sparkle", "entrance", "shinyintro",
                      "playback", "swap", "attack", "ingest", "status", "screenanim", "palette", "icons", "iconshim", "titlemask", "specks", "specks_back", "edits" }
   local JOB_LIBS = { "lz", "rom", "addresses", "pic", "png", "anim", "palette", "icons", "specks", "specks_back", "edits" }
 
@@ -242,6 +242,142 @@ return function(mod)
     return cache:framePath(dex, Playback.frameAt(meta.timeline, seconds), false, color, painted), color
   end
 
+  ---------------------------------------------------------------------------
+  -- Shiny entrance (lib/entrance.lua, lib/sparkle.lua).  Crystal plays a ring of
+  -- sparkles with a chime when a shiny takes the field, and only then the cry and
+  -- the front animation.  The art and the chime come from the player's ROM; if
+  -- either is not where Crystal v1.0/v1.1 put it, there is no entrance and the
+  -- mod behaves as it did before.
+  ---------------------------------------------------------------------------
+  local Sparkle, Entrance = need("sparkle"), need("entrance")
+  local sparkleSprites
+  do
+    local tiles, why = Sparkle.tiles(rom)
+    if tiles then
+      sparkleSprites = Sparkle.sprites(tiles)
+    else
+      warnOnce("sparkleart", "no shiny entrance: %s", tostring(why))
+    end
+  end
+
+  -- Crystal's SFX_SHINE, as the 27 bytes the ROM holds, played by the engine's own
+  -- chip player: a Gen 2 program on sound channel 5.  Registered now because the
+  -- registry freezes after load.
+  local CHIME = "CAS_SHINE"
+  do
+    local bytes = Sparkle.chime(rom)
+    if bytes and mod.content and mod.content.sfx then
+      local ok, err = pcall(function()
+        mod.content.sfx:register(CHIME, {
+          generation = 2,
+          chip = { blob = bytes, channels = { { number = 5, address = 0x4000 } }, engine = 2 },
+        })
+      end)
+      if not ok then
+        warnOnce("sparklechime", "shiny chime not registered: %s", tostring(err))
+      end
+    end
+  end
+
+  local function nowSeconds() return (love and love.timer) and love.timer.getTime() or 0 end
+  local entrance = Entrance.new({
+    now = nowSeconds,
+    enabled = function()
+      return sparkleSprites ~= nil and mod.options:get("shiny_entrance") ~= "off"
+    end,
+    isShiny = isShiny,
+  })
+
+  -- The three pictures as images, built on first use: they need a graphics
+  -- context, which the mod load does not have.  PAL_BATTLE_OB_YELLOW: shade 1 is
+  -- yellow, 2 orange, 3 black; 0 is see-through.
+  local SPARKLE_RGB = { [1] = { 255, 255, 57 }, [2] = { 255, 132, 8 }, [3] = { 0, 0, 0 } }
+  local SPARKLE_PICTURE = { [74] = "star", [14] = "large", [15] = "small" }
+  local sparkleImages = {}
+  local function sparkleImage(name)
+    local image = sparkleImages[name]
+    if image then return image end
+    local sprite = sparkleSprites[name]
+    local data = love.image.newImageData(sprite.w, sprite.h)
+    for y = 0, sprite.h - 1 do
+      for x = 0, sprite.w - 1 do
+        local c = SPARKLE_RGB[sprite.pixels[y * sprite.w + x + 1]]
+        if c then data:setPixel(x, y, c[1] / 255, c[2] / 255, c[3] / 255, 1)
+        else data:setPixel(x, y, 0, 0, 0, 0) end
+      end
+    end
+    image = love.graphics.newImage(data)
+    image:setFilter("nearest", "nearest")
+    sparkleImages[name] = image
+    return image
+  end
+
+  -- Where the ring goes: the centre of the picture the battler is showing, where
+  -- the engine puts it (Sparkle.anchor).  The wide layout composites each side
+  -- into its own region, so it uses the spots SHINY_POKEMON uses for the same thing.
+  local function sparkleAnchor(screen, battler, isEnemy)
+    if screen.wide or (screen.wideLayout and screen:wideLayout()) then
+      if isEnemy then return 200, 40 end
+      return 60, 100
+    end
+    local image = battler.sprite
+    if image and screen.picImage then
+      local ok, shown = pcall(screen.picImage, screen, image)
+      if ok and shown then image = shown end
+    end
+    if type(image) == "userdata" and image.getDimensions then
+      return Sparkle.anchor(isEnemy, image:getDimensions())
+    end
+    return Sparkle.anchor(isEnemy)
+  end
+
+  local function drawEntrance(screen, battler, isEnemy)
+    if not battler then return end
+    local list = entrance:sparkles(battler)
+    if #list == 0 then return end
+    if entrance:chimesDue(battler) > 0 then
+      local game = screen.game
+      local data = (game and game.data) or screen.data
+      if data then pcall(require("src.core.Sound").play, data, CHIME) end
+    end
+    local ax, ay = sparkleAnchor(screen, battler, isEnemy)
+    local PaletteFX = require("src.render.PaletteFX")
+    for _, s in ipairs(list) do
+      local image = sparkleImage(SPARKLE_PICTURE[s.id])
+      local w, h = image:getDimensions()
+      local x, y = math.floor(ax + s.dx - w / 2), math.floor(ay + s.dy - h / 2)
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.draw(image, x, y)
+      -- full colour, so the game's own palettes leave it alone
+      if PaletteFX.markTrueColor then PaletteFX.markTrueColor(x, y, w, h) end
+    end
+  end
+
+  -- The engine asks for the entrance cry as a Pokemon takes the field, which is
+  -- where Crystal plays the sparkle; wrap it so a shiny's cry waits until the
+  -- sparkle is over.  A failure here must never lose the cry.
+  do
+    local BS = require("src.battle.BattleState")
+    local originalCry = BS.playEntranceCry
+    if originalCry then
+      BS.playEntranceCry = function(self, battler)
+        local ok, held = pcall(entrance.holdCry, entrance, self, battler, originalCry)
+        if ok then return held end
+        warnOnce("entrancecry", "shiny entrance failed, playing the cry as usual: %s", tostring(held))
+        return originalCry(self, battler)
+      end
+    end
+  end
+
+  -- SHINY_POKEMON draws its own sparkle and plays its own chime when a shiny
+  -- appears.  While this entrance is on its intro is held off, and given back if
+  -- this entrance is turned off (lib/shinyintro.lua).  Nothing is saved.
+  local shinyIntro = need("shinyintro").new("SHINY_POKEMON", "sparkles")
+  local function syncShinyIntro(game)
+    shinyIntro:sync(game and game.mods,
+      sparkleSprites ~= nil and mod.options:get("shiny_entrance") ~= "off")
+  end
+
   -- Screens that show a Pokemon without a battle (summary, Pokedex, evolution,
   -- Hall of Fame, the intro and so on) get the resting Crystal frame.  Only
   -- fronts: Crystal's back art is a different size from the engine's, and
@@ -295,10 +431,14 @@ return function(mod)
     landed = function(screen, battler)
       if (screen.introSlide or 0) > 0 then return false end
       if screen.growInScale and screen:growInScale(battler) then return false end
+      local shown
       if battler.isPlayer then
-        return screen.phase ~= "intro" and screen.phase ~= "messages"
+        shown = screen.phase ~= "intro" and screen.phase ~= "messages"
+      else
+        shown = not (screen.showEnemyTrainer or screen.enemySendingOut or screen.enemyHidden)
       end
-      return not (screen.showEnemyTrainer or screen.enemySendingOut or screen.enemyHidden)
+      -- a shiny's animation, like its cry, waits for its sparkle
+      return shown and entrance:released(battler)
     end,
     pathFor = function(dex, side, seconds, mon)
       return resolve(dex, side, seconds, isShiny(mon))
@@ -547,6 +687,14 @@ return function(mod)
       local drew, drawErr = pcall(drawStatus, screen)
       if not drew then warnOnce("status", "diagnostics failed: %s", tostring(drawErr)) end
     end
-    return next(screen)
+    pcall(syncShinyIntro, screen.game)
+    local result = next(screen)
+    -- the sparkles go on top of everything the battle drew
+    local drew, drawErr = pcall(function()
+      drawEntrance(screen, screen.enemy, true)
+      drawEntrance(screen, screen.player, false)
+    end)
+    if not drew then warnOnce("entrancedraw", "shiny entrance drawing failed: %s", tostring(drawErr)) end
+    return result
   end, 930)
 end

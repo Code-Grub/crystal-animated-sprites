@@ -64,6 +64,24 @@ end
 
 function Sparkle.done(frame) return frame >= Sparkle.TOTAL end
 
+-- Where the ring is centred, in game pixels, for a picture w by h pixels.  The
+-- engine centres an enemy front pic across a 7x7 tile slot at hlcoord 12,0 and
+-- bottom-aligns it (enemyPicXY in BattleState); the player's back pic stands
+-- with its feet on y=96, starting at x=8.  With no picture to measure, the
+-- centres of those two spots.
+function Sparkle.anchor(isEnemy, w, h)
+  if not (w and h) then
+    if isEnemy then return 124, 28 end
+    return 36, 68
+  end
+  if isEnemy then
+    local tw = math.max(1, math.min(7, math.floor(w / 8)))
+    local th = math.max(1, math.min(7, math.floor(h / 8)))
+    return 96 + 8 * math.floor((8 - tw) / 2) + w / 2, 8 * (7 - th) + h / 2
+  end
+  return 8 + w / 2, 96 - h / 2
+end
+
 -- ------------------------------------------------------------------ the art
 
 -- The nine tiles of the speed graphics as flat, 1-based arrays of 64 shades

@@ -137,3 +137,35 @@ if H.rom() then
 else
   H.skip("sparkle: real ROM", "no ROM found (set CRYSTAL_ROM)")
 end
+
+-- ---------------------------------------------------------------- where it goes
+
+-- The ring is centred on the picture.  The engine places an enemy front pic in
+-- a 7x7 tile slot at hlcoord 12,0, centred across and bottom-aligned (see
+-- enemyPicXY in BattleState), so its centre depends on the picture's size; the
+-- player's back pic stands with its feet on y=96 from x=8.
+H.test("sparkle: the ring is centred on the enemy picture where the engine puts it", function()
+  local function at(w, h) local x, y = Sparkle.anchor(true, w, h) return x .. "," .. y end
+  H.eq(at(56, 56), "124,28", "a full 7x7 picture: the middle of the slot")
+  H.eq(at(40, 40), "124,36", "a 5x5 picture sits low in its slot")
+  H.eq(at(32, 32), "128,40", "a 4x4 one lower and a tile to the right of the slot's middle")
+  H.eq(at(64, 64), "128,32", "a bigger picture grows out of the slot's top-left, not its middle")
+end)
+
+H.test("sparkle: the ring is centred on the player's picture", function()
+  local x, y = Sparkle.anchor(false, 48, 48)
+  H.eq(x, 32)
+  H.eq(y, 72, "feet on y=96")
+  x, y = Sparkle.anchor(false, 40, 40)
+  H.eq(x, 28)
+  H.eq(y, 76)
+end)
+
+H.test("sparkle: with no picture to measure, the slot's own centres", function()
+  local ex, ey = Sparkle.anchor(true)
+  H.eq(ex, 124)
+  H.eq(ey, 28)
+  local px, py = Sparkle.anchor(false)
+  H.eq(px, 36)
+  H.eq(py, 68)
+end)
