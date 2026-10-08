@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- A shiny Pokemon now enters the way it does in Crystal: a ring of eight sparkles, each with Crystal's chime, and only then its cry and its animation. It works for your own Pokemon as well as the enemy's. A new `SHINY ENTRANCE` option turns it off.
+- If SHINY_POKEMON is installed, this entrance replaces its sparkle and chime while `SHINY ENTRANCE` is on, and gives them back when it is off.
+
 ## 0.5.0
 
 - Shiny Pokemon are now drawn in Crystal's shiny colours, and animate like any other, in battles, on the status screen and in Bill's PC Plus. Like Crystal's other colours, this needs `SPRITE COLORS` set to `CRYSTAL` and the game's COLORS setting on ADVANCED.
