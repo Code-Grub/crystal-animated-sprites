@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Shiny Pokemon are now drawn in Crystal's shiny colours, and animate like any other, in battles, on the status screen and in Bill's PC Plus. Like Crystal's other colours, this needs `SPRITE COLORS` set to `CRYSTAL` and the game's COLORS setting on ADVANCED.
+- The sprites rebuild once on the first launch after updating, and now take about 45 MB.
+
 ## 0.4.3
 
 - Fixes thin lines that could run through the Pokemon on the title screen on some displays.
