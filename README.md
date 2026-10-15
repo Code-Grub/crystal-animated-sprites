@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/logo.png" alt="Crystal Animated Sprites" width="640">
+</p>
+
 # Crystal Animated Sprites
 
 Crystal's animated sprites in Pokemon Red, Blue and Yellow on Gen1Recomp,
