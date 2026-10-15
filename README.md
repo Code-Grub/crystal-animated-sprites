@@ -10,12 +10,7 @@ decoded from your own Pokemon Crystal ROM.
 **No artwork is included.** The mod reads the sprites, animation frames and
 timing straight out of a Crystal ROM that you supply, builds them once, and
 keeps the result in the mod's own cache. Nothing from the ROM is ever part of
-the download. The animation below is a capture of the running game and is not
-part of the mod.
-
-<p align="center">
-  <img src="images/animated-battle.gif" alt="Charizard and Mewtwo each playing Crystal's animation as they attack in a Pokemon Red battle" width="480">
-</p>
+the download.
 
 ## What you get
 
@@ -85,8 +80,7 @@ part of the mod.
   lands with the cry, and then stays on its resting frame. It does not repeat.
   With `ATTACK ANIMATION` on, which is not how Crystal behaves, it plays again
   each time that Pokemon uses a move. The Pokedex entry and the
-  status screen play it once each time they open. The animation at the top of
-  this page repeats only because it is a GIF.
+  status screen play it once each time they open.
 - After a Pokemon uses Transform, or after a Silph Scope reveals the Pokemon
   Tower ghost, that sprite holds Crystal's resting pose instead of animating.
 - On the title screen the Pokemon is drawn in full colour right up to Red's
