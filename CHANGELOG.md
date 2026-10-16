@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+- Behind the scenes, the sprites are now rebuilt by reading your Crystal ROM through the game's own import access, instead of copying it to each background worker. Nothing changes in how the sprites look or play.
+
 ## 0.6.0
 
 - A shiny Pokemon now enters the way it does in Crystal: a ring of eight sparkles, each with Crystal's chime, and only then its cry and its animation. It works for your own Pokemon as well as the enemy's. A new `SHINY ENTRANCE` option turns it off.
