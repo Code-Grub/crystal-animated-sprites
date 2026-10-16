@@ -8,13 +8,14 @@ local function readFile(path)
   return s
 end
 
-local function runJob(arg)
+local function runJob(arg, jobApi)
   local chunk = assert(loadstring(readFile("jobs/decode.lua"), "@jobs/decode.lua"))
   -- a sandbox-like environment: no require, no io, no os
   local env = { assert = assert, pcall = pcall, tostring = tostring, type = type,
     pairs = pairs, ipairs = ipairs, load = load, loadstring = loadstring,
     setfenv = setfenv, string = string, table = table, math = math, bit = bit,
-    select = select, error = error, unpack = unpack, setmetatable = setmetatable }
+    select = select, error = error, unpack = unpack, setmetatable = setmetatable,
+    job = jobApi }
   setfenv(chunk, env)
   return chunk(arg)
 end
@@ -42,6 +43,37 @@ else
       H.eq(s.flipped[0] ~= s.frames[0], true, "mirrored differs from original")
       H.eq(#s.timeline > 0, true)
     end
+  end)
+
+  -- A job started with assetIO has `job.imports` and is given no ROM bytes.
+  local function importsOf(bytes, calls)
+    return { imports = { read = function(_, id, offset, length)
+      calls[#calls + 1] = { id = id, offset = offset, length = length }
+      return bytes:sub(offset + 1, offset + length)
+    end } }
+  end
+
+  H.test("job: reads the ROM through job.imports when given none", function()
+    local calls = {}
+    local viaArg = runJob({ rom = raw, libs = libs(), first = 25, last = 25 })
+    local viaImport = runJob({ libs = libs(), first = 25, last = 25 }, importsOf(raw, calls))
+    H.eq(next(viaImport.errors), nil, "no errors")
+    H.eq(#calls, 1, "one read of the import")
+    H.eq(calls[1].id, "crystal_rom", "of the manifest's id")
+    H.eq(calls[1].offset, 0)
+    H.eq(calls[1].length, 2097152, "the whole 2 MiB ROM")
+    H.eq(viaImport.species[25].frames[0], viaArg.species[25].frames[0], "same pictures as with the ROM sent")
+    H.eq(viaImport.species[25].colorBack, viaArg.species[25].colorBack)
+  end)
+
+  H.test("job: asks to be run again with the ROM when it cannot read one", function()
+    local none = runJob({ libs = libs(), first = 25, last = 25 })
+    H.eq(none.needRom, true, "no ROM and no job.imports")
+    H.eq(none.species, nil)
+    local failing = { imports = { read = function() return nil, "refused" end } }
+    local refused = runJob({ libs = libs(), first = 25, last = 25 }, failing)
+    H.eq(refused.needRom, true, "a failed import read")
+    H.eq(refused.err, "refused", "with the reason")
   end)
 
   H.test("job: one bad species does not stop the batch", function()

@@ -147,13 +147,20 @@ return function(mod)
   local jobLibs = {}
   for _, name in ipairs(JOB_LIBS) do jobLibs[name] = sources[name] end
 
+  -- A job is started with assetIO, so it reads the validated import itself
+  -- (job.imports) and the ROM never crosses the thread boundary.  An engine
+  -- without that seam ignores the option, and the job answers needRom; from
+  -- then on the bytes are sent with each job, as before.
+  local viaImport = true
+
   local function startJobs()
     if #pending == 0 or not (mod.job and mod.job:available()) then return end
     while #pending > 0 and #running < MAX_JOBS do
       local range = table.remove(pending, 1)
       local handle, reason = mod.job:run("jobs/decode.lua",
-        { rom = romBytes, libs = jobLibs, first = range.first, last = range.last },
-        { maxSeconds = 30 })
+        { rom = (not viaImport) and romBytes or nil, libs = jobLibs,
+          first = range.first, last = range.last },
+        { maxSeconds = 30, assetIO = viaImport or nil })
       if not handle then
         table.insert(pending, 1, range)
         warnOnce("jobstart", "decode job not started: %s", tostring(reason))
@@ -164,6 +171,12 @@ return function(mod)
   end
 
   local function consume(job, result)
+    if result.status == "ok" and result.result.needRom then
+      -- the worker had no way to read the import: run the range again with the ROM
+      viaImport = false
+      table.insert(pending, 1, { first = job.first, last = job.last })
+      return
+    end
     if result.status ~= "ok" then
       mod.log:error("decode of species %d-%d failed: %s", job.first, job.last, tostring(result.err))
       lastErr = ("decode %d-%d: %s"):format(job.first, job.last, tostring(result.err))

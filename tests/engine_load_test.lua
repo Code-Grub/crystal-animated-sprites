@@ -7,13 +7,17 @@
 package.path = "./?.lua;./?/init.lua;" .. package.path
 if not _G.love then _G.love = require("tests.love_stub") end
 
--- The test love stub has no MD5.  The launcher has already validated the
--- import in the real game, so the stub just reports the expected digest.
+-- The test love stub has no MD5, so give it the engine's own (StreamMD5), and
+-- the loader's import gate checks the real ROM's size and digest for real.
+-- hash returns the hex digest and encode passes it through.
+local StreamMD5 = require("src.mods.StreamMD5")
 love.data = love.data or {}
-love.data.hash = love.data.hash or function() return "digest" end
-love.data.encode = love.data.encode or function()
-  return "301899b8087289a6436b0a241fbbb474"
+love.data.hash = love.data.hash or function(_, data)
+  local ctx = StreamMD5.new()
+  ctx:update(data)
+  return ctx:final()
 end
+love.data.encode = love.data.encode or function(_, _, digest) return digest end
 
 local MOD = "mods/crystal_animated_sprites"
 local ID = "crystal_animated_sprites"
@@ -365,6 +369,158 @@ do
   run.loader.modOptions[ID] = nil
   run.release()
   BattleState.playEntranceCry = realCry
+end
+
+-- The loader's import gate, with the real MD5 and the manifest's own
+-- declaration: the right ROM loads the mod, anything else blocks it before its
+-- entry chunk runs.
+do
+  local RequiredImports = require("src.mods.RequiredImports")
+  local Json = require("src.link.Json")
+  local manifest = Json.decode(readFile(MOD .. "/manifest.json"))
+  manifest.path = MOD
+  local spec = assert(RequiredImports.spec(manifest, "crystal_rom"), "manifest declares crystal_rom")
+  local ROM = MOD .. "/baseroms/crystal.gbc"
+
+  local function digestOf(bytes)
+    local ctx = StreamMD5.new()
+    ctx:update(bytes)
+    return ctx:final()
+  end
+
+  -- what the loader is told about the import: size, two accepted dumps
+  eq(spec.size, 2097152, "the import declares a 2 MiB ROM")
+  eq(#spec.md5, 2, "and accepts the two English UE dumps")
+  check(RequiredImports.validateData(spec, romBytes, digestOf) ~= nil,
+    "the real ROM passes the engine's own validator")
+  local _, shortErr = RequiredImports.validateData(spec, romBytes:sub(1, 1000), digestOf)
+  check(shortErr and shortErr:find("wrong file size", 1, true), "a truncated file is refused by size")
+  local flipped = romBytes:sub(1, 100) .. "X" .. romBytes:sub(102)
+  local _, flipErr = RequiredImports.validateData(spec, flipped, digestOf)
+  check(flipErr and flipErr:find("MD5 mismatch", 1, true), "a ROM with one byte changed is refused by digest")
+
+  -- the loader, over a filesystem that serves the ROM we choose
+  local function gated(bytes)
+    local fs = makeFs()
+    local inner = { read = fs.read, getInfo = fs.getInfo }
+    function fs.read(p)
+      if p == ROM then return bytes end
+      return inner.read(p)
+    end
+    function fs.getInfo(p)
+      if p == ROM then
+        if bytes == nil then return nil end
+        return { type = "file", size = #bytes, modtime = 1 }
+      end
+      return inner.getInfo(p)
+    end
+    local Data = require("tests.modkit.fixtures").fresh()
+    return T.sdk.loadMod(MOD, { data = Data, fs = fs })
+  end
+
+  local run = gated(romBytes)
+  eq(run.mod and run.mod.state, "loaded", "the real ROM lets the mod load through the real gate")
+  run.release()
+
+  run = gated(flipped)
+  check(run.mod and run.mod.state ~= "loaded", "a changed ROM keeps the mod from loading")
+  check(tostring(run.mod and run.mod.failure):find("required import invalid", 1, true),
+    "and says the import is invalid (got " .. tostring(run.mod and run.mod.failure) .. ")")
+  run.release()
+
+  run = gated(nil)
+  check(run.mod and run.mod.state ~= "loaded", "a missing ROM keeps the mod from loading")
+  check(tostring(run.mod and run.mod.failure):find("required import missing", 1, true),
+    "and says the import is missing (got " .. tostring(run.mod and run.mod.failure) .. ")")
+  run.release()
+end
+
+-- An engine without the asset-I/O seam ignores `assetIO`: the job has no `job`
+-- and answers needRom, and the mod runs that range again with the ROM in the
+-- argument.  Job is replaced by one that behaves that way.
+do
+  local Job = require("src.mods.Job")
+  local Runtime = require("src.mods.Runtime")
+  local real = { available = Job.available, run = Job.run, poll = Job.poll, release = Job.release }
+  local runs, results = {}, {}
+  Job.available = function() return true end
+  Job.run = function(_, _, _, script, arg, opts)
+    runs[#runs + 1] = { assetIO = opts and opts.assetIO, rom = arg.rom ~= nil, first = arg.first, last = arg.last }
+    local chunk = assert(loadfile(MOD .. "/" .. script))
+    setfenv(chunk, setmetatable({}, { __index = _G })) -- no `job` here
+    local handle = {}
+    -- decode only a few species, which is all the check needs
+    arg.last = math.min(arg.last, arg.first + 1)
+    results[handle] = { status = "ok", result = chunk(arg) }
+    return handle
+  end
+  Job.poll = function(_, _, handle) return results[handle] end
+  Job.release = function() end
+
+  local ok, err = pcall(function()
+    local run = load(makeFs())
+    eq(run.mod and run.mod.state, "loaded", "the mod loads with the job seam stubbed")
+    for _ = 1, 4 do Runtime.call("core.update", function() end, {}, 1 / 60) end
+    -- both ranges start together at load, before the first answer is known
+    eq(runs[1].assetIO, true, "the first job is started with assetIO")
+    eq(runs[1].rom, false, "and without the ROM in its argument")
+    local lateIO = false
+    for i, r in ipairs(runs) do
+      if r.rom == false then
+        local again
+        for j = i + 1, #runs do
+          if runs[j].first == r.first and runs[j].rom then again = runs[j] break end
+        end
+        check(again ~= nil, ("range %d that answered needRom is run again with the ROM"):format(r.first))
+      else
+        lateIO = lateIO or r.assetIO == true
+      end
+    end
+    eq(lateIO, false, "once the ROM is being sent, assetIO is not asked for again")
+    run.release()
+  end)
+  Job.available, Job.run, Job.poll, Job.release = real.available, real.run, real.poll, real.release
+  if not ok then error(err, 0) end
+end
+
+-- The decode job over the engine's own asset-I/O facade (what a job started
+-- with assetIO gets as `job`): it reads the validated import itself and
+-- produces the same pictures as when the ROM is sent in the argument.
+do
+  local JobAssetIO = require("src.mods.JobAssetIO")
+  local Json = require("src.link.Json")
+  local manifest = Json.decode(readFile(MOD .. "/manifest.json"))
+  manifest.path = MOD
+  local descriptor = assert(JobAssetIO.descriptor(manifest, MOD))
+  -- the test filesystem reports no size for a real file; a real one does
+  local fs = makeFs()
+  local plainInfo = fs.getInfo
+  function fs.getInfo(p, ...)
+    if p == MOD .. "/baseroms/crystal.gbc" then
+      return { type = "file", size = #romBytes, modtime = 1 }
+    end
+    return plainInfo(p, ...)
+  end
+  local facade = assert(JobAssetIO.open(descriptor, fs, ID))
+
+  local info = facade.imports:info("crystal_rom")
+  eq(info and info.size, 2097152, "the facade sees the validated import at its full size")
+  local whole = facade.imports:read("crystal_rom", 0, 2097152)
+  check(whole == romBytes, "and reads back exactly the ROM's bytes")
+
+  local libs = {}
+  for _, n in ipairs({ "lz", "rom", "addresses", "pic", "png", "anim", "palette", "icons", "specks", "specks_back", "edits" }) do
+    libs[n] = readFile(MOD .. "/lib/" .. n .. ".lua")
+  end
+  local chunk = assert(loadfile(MOD .. "/jobs/decode.lua"))
+  setfenv(chunk, setmetatable({ job = facade }, { __index = _G }))
+  local viaImport = chunk({ libs = libs, first = 25, last = 25 })
+  eq(viaImport.needRom, nil, "the job needs no ROM in its argument")
+  eq(next(viaImport.errors), nil, "and decodes without errors")
+  local viaArg = decodeBatch(25, 25)
+  check(viaImport.species[25].frames[0] == viaArg.species[25].frames[0]
+    and viaImport.species[25].shinyBack == viaArg.species[25].shinyBack,
+    "to the same pictures as with the ROM sent")
 end
 
 S.finish()

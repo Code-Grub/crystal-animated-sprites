@@ -15,7 +15,18 @@ local Rom, Anim, PNG, Pic = need("rom"), need("anim"), need("png"), need("pic")
 local Palette, Icons = need("palette"), need("icons")
 local Specks, SpecksBack, Edits = need("specks"), need("specks_back"), need("edits")
 local SHADES = { 255, 170, 85, 0 }
-local rom = Rom.new(arg.rom)
+-- The ROM.  A job started with assetIO reads the mod's validated import itself
+-- (`job.imports`), so no copy of it crosses the thread boundary.  On an engine
+-- without that seam there is no `job`, and the main thread sends the bytes in
+-- `arg.rom` instead.  With neither, the job says so and is run again with them.
+local romBytes = arg.rom
+if not romBytes and job and job.imports then
+  local err
+  romBytes, err = job.imports:read("crystal_rom", 0, 2097152)
+  if not romBytes then return { needRom = true, err = tostring(err) } end
+end
+if not romBytes then return { needRom = true, err = "no ROM was given" } end
+local rom = Rom.new(romBytes)
 
 local species, errors = {}, {}
 for dex = arg.first, arg.last do
